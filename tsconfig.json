@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020", "DOM"],
+    "types": ["chrome"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@gmail/*": ["src/gmail/*"],
+      "@llm/*": ["src/llm/*"],
+      "@analyzer/*": ["src/analyzer/*"],
+      "@storage/*": ["src/storage/*"],
+      "@utils/*": ["src/utils/*"],
+      "@components/*": ["src/popup/components/*"]
+    }
+  },
+  "include": ["src"]
+}

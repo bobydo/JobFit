@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/baosh/.claude/plans/**)",
+      "Read(//c/Users/baosh/.claude/projects/d--YoutubeAnalyzer/memory/**)",
+      "Bash(npm run:*)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\baosh\\.claude\\plans"
+    ]
+  }
+}

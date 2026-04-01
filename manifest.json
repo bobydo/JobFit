@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "JobFit",
+  "version": "0.1.0",
+  "description": "Match your resume against job postings from your Gmail inbox.",
+  "permissions": ["identity", "storage", "downloads"],
+  "host_permissions": [
+    "https://www.googleapis.com/*",
+    "https://gmail.googleapis.com/*",
+    "http://localhost:11434/*",
+    "https://api.groq.com/*",
+    "https://api.anthropic.com/*",
+    "https://api.openai.com/*",
+    "<all_urls>"
+  ],
+  "oauth2": {
+    "client_id": "563009095152-7p2p3gv5po6ajo48vav8o7rspjs2o1bq.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/gmail.readonly"
+    ]
+  },
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "JobFit"
+  }
+}
