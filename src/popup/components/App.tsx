@@ -18,6 +18,7 @@ export default function App() {
   const [setup, setSetup] = useState<SetupState>({ status: 'checking' });
   const [activeTab, setActiveTab] = useState<Tab>('resumes');
   const [showSettings, setShowSettings] = useState(false);
+  const [activeResumeId, setActiveResumeId] = useState<string | null>(null);
 
   async function checkLabels() {
     setSetup({ status: 'checking' });
@@ -84,7 +85,7 @@ export default function App() {
 
           {/* Tab content */}
           <div style={styles.content}>
-            {activeTab === 'resumes' && <ResumesTab />}
+            {activeTab === 'resumes' && <ResumesTab activeResumeId={activeResumeId} onSetActive={setActiveResumeId} />}
             {activeTab === 'jobposts' && <JobPostsTab />}
             {activeTab === 'results' && <ResultsTab />}
           </div>

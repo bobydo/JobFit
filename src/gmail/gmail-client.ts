@@ -96,3 +96,38 @@ export function getSubject(message: GmailMessage): string {
     )?.value ?? '(no subject)'
   );
 }
+
+/** Recursively finds the first text/plain part in a MIME tree. */
+function findTextPart(parts: MessagePart[]): string | null {
+  for (const part of parts) {
+    if (part.mimeType === 'text/plain' && part.body.data) return part.body.data;
+    if (part.parts) {
+      const found = findTextPart(part.parts);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+/** Decodes the plain-text body of a Gmail message (base64url → UTF-8 string). */
+export function getPlainTextBody(message: GmailMessage): string {
+  const { payload } = message;
+  let encoded: string | null = null;
+
+  if (payload.mimeType === 'text/plain' && payload.body.data) {
+    encoded = payload.body.data;
+  } else if (payload.parts) {
+    encoded = findTextPart(payload.parts);
+  }
+
+  if (!encoded) return '';
+
+  const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+  try {
+    return decodeURIComponent(
+      atob(base64).split('').map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join('')
+    );
+  } catch {
+    return atob(base64);
+  }
+}
