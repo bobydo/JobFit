@@ -4,6 +4,7 @@ import OnboardingScreen from './OnboardingScreen';
 import ResumesTab from './ResumesTab';
 import JobPostsTab from './JobPostsTab';
 import ResultsTab from './ResultsTab';
+import SettingsPanel from './SettingsPanel';
 
 type Tab = 'resumes' | 'jobposts' | 'results';
 
@@ -65,7 +66,7 @@ export default function App() {
       </div>
 
       {showSettings ? (
-        <div style={styles.placeholder}>Settings — coming in Stage 7</div>
+        <SettingsPanel onClose={() => setShowSettings(false)} />
       ) : (
         <>
           {/* Tabs */}

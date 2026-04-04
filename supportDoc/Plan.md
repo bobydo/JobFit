@@ -170,19 +170,24 @@ User sets up a Gmail filter:
 #### Model A — JobFit Cloud (SaaS subscription)
 Developer purchases Groq API key, charges users a monthly fee. **Must use Groq** — Haiku/Sonnet cost more than the charge at daily usage volume.
 
-**Usage basis: 40 jobs × 2 resumes = 80 analyses per DAY (2,400/month)**
+| Plan | Price | Limit | Resumes | Groq cost | Stripe fee | **Profit/user** |
+|---|---|---|---|---|---|---|
+| Free trial | $0 | 10 total (one-time) | 1 | ~$0.00 | — | — |
+| **Starter** | **$5/month** | **30/month** | **1** | ~$0.004 | ~$0.45 | **~$4.55** |
+| **Pro** | **$15/month** | **10/day** (resets daily) | **2** | ~$0.043 | ~$0.74 | **~$14.22** |
 
-| Plan | Price | Daily limit | Monthly analyses | Your Groq cost |
-|---|---|---|---|---|
-| Free trial | $0 | 10 total (one-time) | — | ~$0.00 |
-| **Pro** | **$10/month** | **80/day** (40 jobs × 2 resumes) | ~2,400 | ~$0.34 |
-| Power | $18/month | 200/day | ~6,000 | ~$0.85 |
+**Starter** = casual job seeker, 1 resume, ~7–8 jobs/week.
+**Pro** = active job seeker, 2 resumes (e.g. engineer + manager track), daily refresh so no monthly cap anxiety.
 
-**Margin at 1,000 Pro users: $10,000 revenue — ~$340 Groq API cost = $9,660 profit (96.6%).**
+**At 1,000 users:** 500 Starter + 500 Pro → ~$9,385/month profit.
 
-Groq free tier (14,400 req/day) covers up to ~180 users before needing a paid Groq plan.
+Groq free tier (14,400 req/day) covers early-stage volume before needing a paid Groq plan.
 
 Requires a lightweight backend (Cloudflare Worker) to hold the Groq API key server-side — never exposed to the extension. Extension sends job + resume text to your worker, worker calls Groq, returns result.
+
+Daily limit enforced in Cloudflare Worker KV store (token → plan tier + daily count). Reset at midnight UTC.
+
+Upgrade prompt: after Starter hits 30-analysis cap → *"Upgrade to Pro — daily refresh + 2 resumes."*
 
 #### Model B — BYOK (Bring Your Own Key)
 App is free. User enters their own API key — they pay their provider directly. No backend needed.
