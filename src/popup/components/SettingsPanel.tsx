@@ -1,12 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getConfig, saveConfig, AppConfig, LLMMode, ByokProvider } from '@storage/config-store';
-
-// Replace these with your actual Stripe Payment Link URLs from stripe.com/payment-links
-const STRIPE_STARTER_URL = 'https://buy.stripe.com/YOUR_STARTER_LINK';
-const STRIPE_PRO_URL     = 'https://buy.stripe.com/YOUR_PRO_LINK';
-
-// Replace with your deployed Cloudflare Worker URL
-const WORKER_URL = 'https://YOUR_WORKER.workers.dev';
+import { WORKER_URL, STRIPE_PRO_URL } from '../../config';
 
 const BYOK_HINTS: Record<ByokProvider, string> = {
   groq:      'Get a free key at console.groq.com → API Keys. Free tier covers ~14,400 req/day.',
@@ -25,6 +19,8 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [keyStatus, setKeyStatus] = useState<'idle' | 'validating' | 'ok' | 'error'>('idle');
   const [showByokWarning, setShowByokWarning] = useState(false);
   const [saveFolder, setSaveFolder] = useState('jobfit');
+  const [maxResumes, setMaxResumes] = useState(2);
+  const [maxJobPostsPerDay, setMaxJobPostsPerDay] = useState(50);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -35,6 +31,8 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
       setByokProvider(cfg.byokProvider ?? 'groq');
       setApiKey(cfg.apiKey ?? '');
       setSaveFolder(cfg.saveFolder);
+      setMaxResumes(cfg.maxResumes);
+      setMaxJobPostsPerDay(cfg.maxJobPostsPerDay);
       if (cfg.subscriptionToken) setTokenStatus('ok');
       if (cfg.apiKey) setKeyStatus('ok');
     });
@@ -55,7 +53,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
         body: JSON.stringify({ token }),
       });
       if (!res.ok) throw new Error('invalid');
-      const { plan } = await res.json() as { plan: 'starter' | 'pro' };
+      const { plan } = await res.json() as { plan: 'pro' };
       await saveConfig({ mode: 'jobfit-cloud', subscriptionToken: token, subscriptionPlan: plan });
       setMode('jobfit-cloud');
       setTokenStatus('ok');
@@ -117,8 +115,12 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
     await doSaveApiKey();
   }
 
-  async function handleSaveFolder() {
-    await saveConfig({ saveFolder: saveFolder.trim() || 'jobfit' });
+  async function handleSaveGeneral() {
+    await saveConfig({
+      saveFolder: saveFolder.trim() || 'jobfit',
+      maxResumes: Math.min(5, Math.max(1, maxResumes)),
+      maxJobPostsPerDay: Math.min(100, Math.max(1, maxJobPostsPerDay)),
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   }
@@ -147,24 +149,14 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
 
           {mode === 'jobfit-cloud' && (
             <div style={s.indent}>
-              {/* Plan cards */}
-              <div style={s.planRow}>
-                <div style={s.planCard}>
-                  <div style={s.planName}>Starter</div>
-                  <div style={s.planPrice}>$5 <span style={s.planPer}>/mo</span></div>
-                  <div style={s.planDetail}>1 resume · 30 analyses/month</div>
-                  <button style={s.subscribeBtn} onClick={() => openStripe(STRIPE_STARTER_URL)}>
-                    Subscribe →
-                  </button>
-                </div>
-                <div style={{ ...s.planCard, ...s.planCardPro }}>
-                  <div style={s.planName}>Pro</div>
-                  <div style={s.planPrice}>$15 <span style={s.planPer}>/mo</span></div>
-                  <div style={s.planDetail}>2 resumes · 10/day (daily refresh)</div>
-                  <button style={{ ...s.subscribeBtn, ...s.subscribeBtnPro }} onClick={() => openStripe(STRIPE_PRO_URL)}>
-                    Subscribe →
-                  </button>
-                </div>
+              {/* Plan card */}
+              <div style={{ ...s.planCard, ...s.planCardPro, marginBottom: 10 }}>
+                <div style={s.planName}>Pro</div>
+                <div style={s.planPrice}>$11 <span style={s.planPer}>/mo</span></div>
+                <div style={s.planDetail}>2 resumes · 50 analyses/day · daily refresh</div>
+                <button style={{ ...s.subscribeBtn, ...s.subscribeBtnPro }} onClick={() => openStripe(STRIPE_PRO_URL)}>
+                  Subscribe →
+                </button>
               </div>
 
               {/* Token entry */}
@@ -229,15 +221,34 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
           )}
         </div>
 
-        {/* ── Save Folder ── */}
+        {/* ── General ── */}
         <div style={s.section}>
-          <div style={s.sectionLabel}>Download folder</div>
+          <div style={s.sectionLabel}>General</div>
+
+          <div style={s.fieldLabel}>Max resumes <span style={s.fieldHint}>(1–5)</span></div>
+          <input
+            style={{ ...s.input, width: 60 }}
+            type="number" min={1} max={5}
+            value={maxResumes}
+            onChange={(e) => setMaxResumes(Number(e.target.value))}
+          />
+
+          <div style={s.fieldLabel}>Max job posts per day <span style={s.fieldHint}>(1–100)</span></div>
+          <input
+            style={{ ...s.input, width: 60 }}
+            type="number" min={1} max={100}
+            value={maxJobPostsPerDay}
+            onChange={(e) => setMaxJobPostsPerDay(Number(e.target.value))}
+          />
+
+          <div style={s.fieldLabel}>Download folder</div>
           <div style={s.hint}>Results saved to Downloads/<span style={{ fontStyle: 'italic' }}>{saveFolder || 'jobfit'}</span>/</div>
-          <div style={s.row}>
-            <input style={s.input} type="text" value={saveFolder} onChange={(e) => setSaveFolder(e.target.value)} />
-            <button style={s.saveBtn} onClick={handleSaveFolder}>Save</button>
+          <input style={s.input} type="text" value={saveFolder} onChange={(e) => setSaveFolder(e.target.value)} />
+
+          <div style={{ marginTop: 10 }}>
+            <button style={s.saveBtn} onClick={handleSaveGeneral}>Save</button>
+            {saved && <span style={{ ...s.ok, marginLeft: 8 }}>Saved</span>}
           </div>
-          {saved && <div style={s.ok}>Saved</div>}
         </div>
 
       </div>
@@ -277,6 +288,7 @@ const s: Record<string, React.CSSProperties> = {
   radioLabel:   { fontSize: 13 },
   indent:       { marginLeft: 20, marginTop: 6, marginBottom: 8 },
   fieldLabel:   { fontSize: 12, color: '#555', marginTop: 8, marginBottom: 4 },
+  fieldHint:    { fontSize: 11, color: '#aaa', fontWeight: 400 },
   hint:         { fontSize: 11, color: '#888', marginBottom: 6 },
   row:          { display: 'flex', gap: 6, alignItems: 'center' },
   input:        { flex: 1, padding: '5px 8px', fontSize: 12, border: '1px solid #ccc', borderRadius: 4 },

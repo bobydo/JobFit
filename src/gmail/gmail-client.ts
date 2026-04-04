@@ -23,6 +23,7 @@ export interface MessagePart {
 export interface GmailMessage {
   id: string;
   threadId: string;
+  internalDate?: string; // Unix ms timestamp as string, returned by Gmail API
   payload: {
     headers: MessageHeader[];
     mimeType: string;
@@ -86,6 +87,11 @@ export async function listMessages(
 /** Fetches full message by ID. */
 export async function getMessage(id: string): Promise<GmailMessage> {
   return gmailFetch<GmailMessage>(`/messages/${id}?format=full`);
+}
+
+/** Returns the received date of a message from internalDate (Unix ms). */
+export function getInternalDate(message: GmailMessage): Date {
+  return message.internalDate ? new Date(Number(message.internalDate)) : new Date(0);
 }
 
 /** Extracts the Subject header value from a message. */

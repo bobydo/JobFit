@@ -1,6 +1,6 @@
 export type LLMMode = 'jobfit-cloud' | 'groq' | 'anthropic' | 'openai' | 'ollama';
 export type ByokProvider = 'groq' | 'anthropic' | 'openai';
-export type SubscriptionPlan = 'starter' | 'pro';
+export type SubscriptionPlan = 'pro';
 
 export interface AppConfig {
   mode: LLMMode;
@@ -15,11 +15,15 @@ export interface AppConfig {
   ollamaModel?: string;
   // General
   saveFolder: string;
+  maxResumes: number;
+  maxJobPostsPerDay: number;
 }
 
 const DEFAULTS: AppConfig = {
   mode: 'jobfit-cloud',
   saveFolder: 'jobfit',
+  maxResumes: 2,
+  maxJobPostsPerDay: 50,
 };
 
 export async function getConfig(): Promise<AppConfig> {

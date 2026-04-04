@@ -1,45 +1,60 @@
 import { useEffect, useState } from 'react';
 import { listMessages, getMessage, getSubject, getPlainTextBody } from '@gmail/gmail-client';
-
-interface Resume {
-  id: string;
-  subject: string;
-  body: string;
-}
+import { getCached, setCached } from '@storage/cache-store';
+import { getConfig } from '@storage/config-store';
+import type { Resume } from '../types';
 
 interface Props {
-  activeResumeId: string | null;
-  onSetActive: (id: string) => void;
+  activeResumeIds: string[];
+  onToggle: (id: string) => void;
+  onInitIds: (ids: string[]) => void;
+  cachedData: Resume[] | null;
+  onDataLoaded: (data: Resume[]) => void;
 }
 
-export default function ResumesTab({ activeResumeId, onSetActive }: Props) {
-  const [resumes, setResumes] = useState<Resume[]>([]);
-  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
+export default function ResumesTab({ activeResumeIds, onToggle, onInitIds, cachedData, onDataLoaded }: Props) {
+  const [resumes, setResumes] = useState<Resume[]>(cachedData ?? []);
+  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>(cachedData ? 'loaded' : 'loading');
   const [error, setError] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [tooMany, setTooMany] = useState(false);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (cachedData) return; // in-memory hit — skip entirely
+    load();
+  }, []);
 
   async function load() {
     setStatus('loading');
     try {
-      const stubs = await listMessages('resumes', 3); // fetch 3 to detect >2
-      if (stubs.length > 2) setTooMany(true);
-      const top2 = stubs.slice(0, 2);
-      const messages = await Promise.all(top2.map((s) => getMessage(s.id)));
+      // check persistent cache before hitting Gmail API
+      const stored = await getCached<Resume[]>('resumes');
+      if (stored) {
+        apply(stored);
+        return;
+      }
+      const { maxResumes } = await getConfig();
+      const stubs = await listMessages('resumes', maxResumes);
+      const messages = await Promise.all(stubs.map((s) => getMessage(s.id)));
       const loaded: Resume[] = messages.map((msg) => ({
         id: msg.id,
         subject: getSubject(msg),
         body: getPlainTextBody(msg),
       }));
-      setResumes(loaded);
-      if (!activeResumeId && loaded.length > 0) onSetActive(loaded[0].id);
-      setStatus('loaded');
+      await setCached('resumes', loaded);
+      apply(loaded);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setStatus('error');
     }
+  }
+
+  function apply(data: Resume[]) {
+    setResumes(data);
+    onDataLoaded(data);
+    if (activeResumeIds.length === 0 && data.length > 0) {
+      getConfig().then(({ maxResumes }) => onInitIds(data.slice(0, maxResumes).map((r) => r.id)));
+    }
+    setStatus('loaded');
   }
 
   if (status === 'loading') return <div style={s.center}>Loading resumes…</div>;
@@ -59,25 +74,26 @@ export default function ResumesTab({ activeResumeId, onSetActive }: Props) {
 
   return (
     <div>
-      {tooMany && (
-        <div style={s.warning}>
-          Only 2 resumes supported. Showing the 2 most recent.
-        </div>
-      )}
+      <div style={s.hint}>
+        Select up to 2 for analysis ({activeResumeIds.length}/2 selected)
+      </div>
       {resumes.map((r) => {
-        const isActive = r.id === activeResumeId;
+        const checked = activeResumeIds.includes(r.id);
         const isExpanded = r.id === expandedId;
         return (
-          <div key={r.id} style={{ ...s.card, ...(isActive ? s.cardActive : {}) }}>
+          <div key={r.id} style={{ ...s.card, ...(checked ? s.cardChecked : {}) }}>
             <div style={s.cardHeader}>
-              <button
-                style={{ ...s.subjectBtn, ...(isActive ? s.subjectActive : {}) }}
-                onClick={() => onSetActive(r.id)}
-                title="Set as active resume for analysis"
-              >
-                {isActive && <span style={s.check}>✓ </span>}
-                {r.subject}
-              </button>
+              <label style={s.label}>
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => onToggle(r.id)}
+                  style={s.checkbox}
+                />
+                <span style={{ ...s.subject, ...(checked ? s.subjectChecked : {}) }}>
+                  {r.subject}
+                </span>
+              </label>
               <button
                 style={s.expandBtn}
                 onClick={() => setExpandedId(isExpanded ? null : r.id)}
@@ -99,19 +115,14 @@ export default function ResumesTab({ activeResumeId, onSetActive }: Props) {
 const s: Record<string, React.CSSProperties> = {
   center: { color: '#888', textAlign: 'center', paddingTop: 40 },
   empty: { textAlign: 'center', paddingTop: 32, color: '#555', lineHeight: 1.6 },
-  warning: {
-    background: '#fff3cd', border: '1px solid #ffc107', borderRadius: 6,
-    padding: '6px 10px', fontSize: 12, marginBottom: 8, color: '#856404',
-  },
+  hint: { fontSize: 12, color: '#1a73e8', fontWeight: 600, marginBottom: 8 },
   card: { border: '1px solid #e5e5e5', borderRadius: 8, marginBottom: 8, overflow: 'hidden' },
-  cardActive: { borderColor: '#1a73e8' },
+  cardChecked: { borderColor: '#1a73e8', background: '#f8fbff' },
   cardHeader: { display: 'flex', alignItems: 'center', padding: '8px 10px', gap: 6 },
-  subjectBtn: {
-    flex: 1, textAlign: 'left', background: 'none', border: 'none',
-    cursor: 'pointer', fontSize: 13, color: '#333', fontWeight: 500,
-  },
-  subjectActive: { color: '#1a73e8' },
-  check: { color: '#1a73e8' },
+  label: { flex: 1, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' },
+  checkbox: { width: 15, height: 15, accentColor: '#1a73e8', flexShrink: 0, cursor: 'pointer' },
+  subject: { fontSize: 13, color: '#333', fontWeight: 500 },
+  subjectChecked: { color: '#1a73e8' },
   expandBtn: {
     background: 'none', border: 'none', cursor: 'pointer',
     fontSize: 11, color: '#888', padding: '2px 6px', flexShrink: 0,

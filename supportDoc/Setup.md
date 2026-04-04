@@ -28,5 +28,23 @@ npm run build
 ```
 Chrome → `chrome://extensions` → Developer mode ON → Load unpacked → select `dist/`
 
+## Future: Stripe + Cloudflare Worker (JobFit Cloud mode)
+
+> Not needed for local testing. Set up when ready to accept real subscribers.
+
+- [ ] Create Stripe account → create Payment Link (Pro $11/mo)
+- [ ] Deploy Cloudflare Worker:
+  - Receives Stripe webhook on payment → generates a unique token → emails it to customer
+  - Exposes `POST /validate-token` → verifies token, returns `{ plan: 'starter' | 'pro' }`
+  - Stores tokens in Cloudflare KV with daily usage counters (reset at midnight UTC)
+- [ ] Fill in `src/config.ts`:
+  - `WORKER_URL` = your deployed Worker URL
+  - `STRIPE_PRO_URL` = Pro Payment Link
+- [ ] Test the token flow:
+  1. Complete a test purchase on Stripe (use test mode)
+  2. Receive confirmation email with token
+  3. Open extension Settings → JobFit Cloud → paste token → verify "Token saved" appears
+  4. Token is proof of payment — user pastes it once, extension remembers it via `chrome.storage.sync`
+
 ## Should see it after sign in
 ![FolderCheck](image/Setup/FolderCheck.png)

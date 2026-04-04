@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { labelExists } from '@gmail/gmail-client';
+import { clearCached } from '@storage/cache-store';
 import OnboardingScreen from './OnboardingScreen';
 import ResumesTab from './ResumesTab';
 import JobPostsTab from './JobPostsTab';
 import ResultsTab from './ResultsTab';
 import SettingsPanel from './SettingsPanel';
+import type { Resume, JobEmail } from '../types';
 
 type Tab = 'resumes' | 'jobposts' | 'results';
 
@@ -18,7 +20,31 @@ export default function App() {
   const [setup, setSetup] = useState<SetupState>({ status: 'checking' });
   const [activeTab, setActiveTab] = useState<Tab>('resumes');
   const [showSettings, setShowSettings] = useState(false);
-  const [activeResumeId, setActiveResumeId] = useState<string | null>(null);
+  const [activeResumeIds, setActiveResumeIds] = useState<string[]>([]);
+  const [resumesData, setResumesData] = useState<Resume[] | null>(null);
+  const [jobEmailsData, setJobEmailsData] = useState<JobEmail[] | null>(null);
+
+  // Restore saved selection on mount
+  useEffect(() => {
+    chrome.storage.local.get('activeResumeIds', (result) => {
+      if (result.activeResumeIds?.length) setActiveResumeIds(result.activeResumeIds);
+    });
+  }, []);
+
+  // Persist selection whenever it changes (skip empty initial state)
+  useEffect(() => {
+    if (activeResumeIds.length > 0) {
+      chrome.storage.local.set({ activeResumeIds });
+    }
+  }, [activeResumeIds]);
+
+  function toggleResume(id: string) {
+    setActiveResumeIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 2) return prev; // cap at 2
+      return [...prev, id];
+    });
+  }
 
   async function checkLabels() {
     setSetup({ status: 'checking' });
@@ -37,6 +63,15 @@ export default function App() {
     } catch (err) {
       setSetup({ status: 'error', message: err instanceof Error ? err.message : String(err) });
     }
+  }
+
+  async function handleRefresh() {
+    await clearCached('resumes', 'jobposts');
+    chrome.storage.local.remove('activeResumeIds');
+    setResumesData(null);
+    setJobEmailsData(null);
+    setActiveResumeIds([]);
+    checkLabels();
   }
 
   useEffect(() => { checkLabels(); }, []);
@@ -85,14 +120,27 @@ export default function App() {
 
           {/* Tab content */}
           <div style={styles.content}>
-            {activeTab === 'resumes' && <ResumesTab activeResumeId={activeResumeId} onSetActive={setActiveResumeId} />}
-            {activeTab === 'jobposts' && <JobPostsTab />}
+            {activeTab === 'resumes' && (
+              <ResumesTab
+                activeResumeIds={activeResumeIds}
+                onToggle={toggleResume}
+                onInitIds={setActiveResumeIds}
+                cachedData={resumesData}
+                onDataLoaded={setResumesData}
+              />
+            )}
+            {activeTab === 'jobposts' && (
+              <JobPostsTab
+                cachedData={jobEmailsData}
+                onDataLoaded={setJobEmailsData}
+              />
+            )}
             {activeTab === 'results' && <ResultsTab />}
           </div>
 
           {/* Footer */}
           <div style={styles.footer}>
-            <button style={styles.refreshBtn} onClick={checkLabels}>↺ Refresh</button>
+            <button style={styles.refreshBtn} onClick={handleRefresh}>↺ Refresh</button>
           </div>
         </>
       )}
@@ -106,9 +154,9 @@ const styles: Record<string, React.CSSProperties> = {
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderBottom: '1px solid #e5e5e5' },
   logo: { fontWeight: 700, fontSize: 16 },
   iconBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 2 },
-  tabs: { display: 'flex', borderBottom: '1px solid #e5e5e5' },
-  tab: { flex: 1, padding: '8px 0', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: '#555' },
-  tabActive: { borderBottom: '2px solid #1a73e8', color: '#1a73e8', fontWeight: 600 },
+  tabs: { display: 'flex', borderBottom: '2px solid #e5e5e5' },
+  tab: { flex: 1, padding: '8px 0', background: 'none', border: 'none', borderBottom: '3px solid transparent', cursor: 'pointer', fontSize: 13, color: '#888', marginBottom: -2 },
+  tabActive: { borderBottom: '3px solid #1a73e8', color: '#1a73e8', fontWeight: 600, background: '#f0f6ff' },
   content: { flex: 1, overflowY: 'auto', padding: 12 },
   footer: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', borderTop: '1px solid #e5e5e5' },
   refreshBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#555', fontSize: 13 },
