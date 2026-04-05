@@ -96,6 +96,8 @@ export default function App() {
       const timeout = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('Timed out after 10s — check OAuth client ID and Gmail API is enabled')), 10000)
       );
+      //labelExists is a function of gmail-client.ts 
+      //https://gmail.googleapis.com/gmail/v1/users/me/labels API to check if label exists
       const [hasResumes, hasJobposts] = await Promise.race([
         Promise.all([labelExists('resumes'), labelExists('jobposts')]),
         timeout,
