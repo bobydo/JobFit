@@ -17,6 +17,7 @@ export interface AnalysisResult {
   jobSubject: string;
   resumeId: string;
   resumeSubject: string;
+  jobUrl: string;
   matchScore: number;       // 0–100
   matchSummary: string;
   skillsGaps: string[];

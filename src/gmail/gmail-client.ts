@@ -103,16 +103,27 @@ export function getSubject(message: GmailMessage): string {
   );
 }
 
-/** Recursively finds the first text/plain part in a MIME tree. */
-function findTextPart(parts: MessagePart[]): string | null {
+/** Recursively finds the first part matching a given MIME type in a MIME tree. */
+function findPart(parts: MessagePart[], mimeType: string): string | null {
   for (const part of parts) {
-    if (part.mimeType === 'text/plain' && part.body.data) return part.body.data;
+    if (part.mimeType === mimeType && part.body.data) return part.body.data;
     if (part.parts) {
-      const found = findTextPart(part.parts);
+      const found = findPart(part.parts, mimeType);
       if (found) return found;
     }
   }
   return null;
+}
+
+function decodeBase64url(encoded: string): string {
+  const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+  try {
+    return decodeURIComponent(
+      atob(base64).split('').map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join('')
+    );
+  } catch {
+    return atob(base64);
+  }
 }
 
 /** Decodes the plain-text body of a Gmail message (base64url → UTF-8 string). */
@@ -123,17 +134,38 @@ export function getPlainTextBody(message: GmailMessage): string {
   if (payload.mimeType === 'text/plain' && payload.body.data) {
     encoded = payload.body.data;
   } else if (payload.parts) {
-    encoded = findTextPart(payload.parts);
+    encoded = findPart(payload.parts, 'text/plain');
   }
 
   if (!encoded) return '';
+  return decodeBase64url(encoded);
+}
 
-  const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
-  try {
-    return decodeURIComponent(
-      atob(base64).split('').map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join('')
-    );
-  } catch {
-    return atob(base64);
+/**
+ * Returns the raw body suitable for URL extraction.
+ * Prefers text/plain; falls back to text/html (e.g. HTML-only emails like LinkedIn alerts).
+ * The URL extraction regex handles href="..." in HTML cleanly.
+ */
+export function getBodyForUrlExtraction(message: GmailMessage): string {
+  const { payload } = message;
+
+  // Try plain text first
+  let encoded: string | null = null;
+  if (payload.mimeType === 'text/plain' && payload.body.data) {
+    encoded = payload.body.data;
+  } else if (payload.parts) {
+    encoded = findPart(payload.parts, 'text/plain');
   }
+
+  // Fall back to HTML
+  if (!encoded) {
+    if (payload.mimeType === 'text/html' && payload.body.data) {
+      encoded = payload.body.data;
+    } else if (payload.parts) {
+      encoded = findPart(payload.parts, 'text/html');
+    }
+  }
+
+  if (!encoded) return '';
+  return decodeBase64url(encoded);
 }

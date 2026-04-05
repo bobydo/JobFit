@@ -1,4 +1,5 @@
 import { ollamaChat } from '../llm/ollama-provider';
+import { fetchJobPage } from '@utils/job-page-fetcher';
 import type { Resume, JobEmail, AnalysisResult } from '../popup/types';
 
 interface LLMResponse {
@@ -68,6 +69,7 @@ export async function analyzePair(
   return {
     jobEmailId: job.id,
     jobSubject: job.subject,
+    jobUrl: job.urls[0] ?? '',
     resumeId: resume.id,
     resumeSubject: resume.subject,
     matchScore,
@@ -75,4 +77,18 @@ export async function analyzePair(
     skillsGaps,
     analyzedAt: new Date(),
   };
+}
+
+// Returns null if the URL is not a real job posting page
+export async function analyzeUrl(
+  resume: Resume,
+  url: string,
+  emailId: string,
+  ollamaBaseUrl: string,
+  ollamaModel: string
+): Promise<AnalysisResult | null> {
+  const page = await fetchJobPage(url);
+  if (!page) return null;
+  const fakeJob: JobEmail = { id: emailId, subject: page.title, body: page.body, urls: [url], date: new Date() };
+  return analyzePair(resume, fakeJob, ollamaBaseUrl, ollamaModel);
 }

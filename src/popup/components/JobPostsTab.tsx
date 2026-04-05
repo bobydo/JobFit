@@ -1,13 +1,9 @@
 import { useEffect, useState } from 'react';
-import { listMessages, getMessage, getSubject, getPlainTextBody, getInternalDate } from '@gmail/gmail-client';
+import { listMessages, getMessage, getSubject, getPlainTextBody, getBodyForUrlExtraction, getInternalDate } from '@gmail/gmail-client';
 import { getCached, setCached, getProcessedIds, markProcessed } from '@storage/cache-store';
 import { getConfig } from '@storage/config-store';
+import { extractCandidateUrls } from '@utils/job-page-fetcher';
 import type { JobEmail } from '../types';
-
-function extractUrls(text: string): string[] {
-  const matches = text.match(/https?:\/\/[^\s<>"{}|\\^`[\]]+/g) ?? [];
-  return [...new Set(matches)];
-}
 
 function formatDate(date: Date): string {
   const todayStr = new Date().toDateString();
@@ -61,7 +57,7 @@ export default function JobPostsTab({ cachedData, onDataLoaded, onAnalyze, isAna
           id: msg.id,
           subject: getSubject(msg),
           body,
-          urls: extractUrls(body),
+          urls: extractCandidateUrls(getBodyForUrlExtraction(msg)),
           date: getInternalDate(msg),
         };
       });
