@@ -23,7 +23,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [ollamaStatus, setOllamaStatus] = useState<'idle' | 'validating' | 'ok' | 'error'>('idle');
   const [saveFolder, setSaveFolder] = useState('jobfit');
   const [maxResumes, setMaxResumes] = useState(2);
-  const [maxJobPostsPerDay, setMaxJobPostsPerDay] = useState(50);
+  const [maxJobPosts, setMaxJobPostsPerDay] = useState(50);
   const [staleJobDays, setStaleJobDays] = useState(10);
   const [saved, setSaved] = useState(false);
 
@@ -36,7 +36,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
       setApiKey(cfg.apiKey ?? '');
       setSaveFolder(cfg.saveFolder);
       setMaxResumes(cfg.maxResumes);
-      setMaxJobPostsPerDay(cfg.maxJobPostsPerDay);
+      setMaxJobPostsPerDay(cfg.maxJobPosts);
       setStaleJobDays(cfg.staleJobDays);
       setOllamaModel(cfg.ollamaModel ?? 'qwen3:8b');
       setOllamaBaseUrl(cfg.ollamaBaseUrl ?? 'http://localhost:11434');
@@ -142,7 +142,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
     await saveConfig({
       saveFolder: saveFolder.trim() || 'jobfit',
       maxResumes: Math.min(5, Math.max(1, maxResumes)),
-      maxJobPostsPerDay: Math.min(100, Math.max(1, maxJobPostsPerDay)),
+      maxJobPosts: Math.min(100, Math.max(1, maxJobPosts)),
       staleJobDays: Math.min(90, Math.max(1, staleJobDays)),
     });
     setSaved(true);
@@ -294,11 +294,11 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
             onChange={(e) => setMaxResumes(Number(e.target.value))}
           />
 
-          <div style={s.fieldLabel}>Max job posts per day <span style={s.fieldHint}>(1–100)</span></div>
+          <div style={s.fieldLabel}>Max job posts to load <span style={s.fieldHint}>(1–100)</span></div>
           <input
             style={{ ...s.input, width: 60 }}
             type="number" min={1} max={100}
-            value={maxJobPostsPerDay}
+            value={maxJobPosts}
             onChange={(e) => setMaxJobPostsPerDay(Number(e.target.value))}
           />
 

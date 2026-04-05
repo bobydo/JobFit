@@ -28,6 +28,18 @@ npm run build
 ```
 Chrome → `chrome://extensions` → Developer mode ON → Load unpacked → select `dist/`
 
+## Ollama (local mode)
+
+Chrome extensions send requests with a `chrome-extension://` origin, which Ollama blocks by default (403 error). Fix by setting the `OLLAMA_ORIGINS` environment variable:
+
+1. Search "Environment Variables" in Start Menu → **Edit the system environment variables**
+2. Under **System Variables** → **New**:
+   - Name: `OLLAMA_ORIGINS`
+   - Value: `*`
+3. Quit Ollama from the system tray and relaunch it
+
+> This variable only affects Ollama. It does not interfere with Groq or other API modes.
+
 ## Future: Stripe + Cloudflare Worker (JobFit Cloud mode)
 
 > Not needed for local testing. Set up when ready to accept real subscribers.

@@ -7,6 +7,16 @@ interface Props {
   error: string | null;
 }
 
+function downloadResults(results: AnalysisResult[]) {
+  const json = JSON.stringify(results, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const url = URL.createObjectURL(blob);
+  chrome.downloads.download({ url, filename: `jobfit-results_${date}.json` }, () => {
+    URL.revokeObjectURL(url);
+  });
+}
+
 function ScoreBadge({ score }: { score: number }) {
   const color = score >= 70 ? '#2e7d32' : score >= 40 ? '#e65100' : '#c62828';
   const bg = score >= 70 ? '#e8f5e9' : score >= 40 ? '#fff3e0' : '#ffebee';
@@ -51,8 +61,11 @@ export default function ResultsTab({ results, isAnalyzing, error }: Props) {
 
   return (
     <div>
+      <div style={s.toolbar}>
+        <button style={s.downloadBtn} onClick={() => downloadResults(results)}>↓ Download JSON</button>
+      </div>
       {isAnalyzing && (
-        <div style={s.analyzingBanner}>Analyzing more results…</div>
+        <div style={s.analyzingBanner}>⚠ Analyzing… Keep this popup open until done.</div>
       )}
       {error && (
         <div style={s.errorBanner}>{error}</div>
@@ -100,9 +113,14 @@ export default function ResultsTab({ results, isAnalyzing, error }: Props) {
 const s: Record<string, React.CSSProperties> = {
   center: { color: '#888', textAlign: 'center', paddingTop: 40, lineHeight: 1.8 },
   hint: { fontSize: 12, color: '#aaa' },
+  toolbar: { display: 'flex', justifyContent: 'flex-end', marginBottom: 8 },
+  downloadBtn: {
+    background: 'none', border: '1px solid #ccc', borderRadius: 5,
+    padding: '3px 10px', fontSize: 12, color: '#555', cursor: 'pointer',
+  },
   analyzingBanner: {
-    background: '#e8f0fe', border: '1px solid #c5d8fb', borderRadius: 6,
-    padding: '6px 10px', marginBottom: 8, fontSize: 11, color: '#1a56c4',
+    background: '#fff3e0', border: '1px solid #ffcc80', borderRadius: 6,
+    padding: '6px 10px', marginBottom: 8, fontSize: 11, color: '#e65100', fontWeight: 600,
   },
   errorBanner: {
     background: '#ffebee', border: '1px solid #f9a8a8', borderRadius: 6,

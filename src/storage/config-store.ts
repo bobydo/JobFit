@@ -17,7 +17,7 @@ export interface AppConfig {
   // General
   saveFolder: string;
   maxResumes: number;
-  maxJobPostsPerDay: number;
+  maxJobPosts: number;
   staleJobDays: number;
 }
 
@@ -25,7 +25,7 @@ const DEFAULTS: AppConfig = {
   mode: 'jobfit-cloud',
   saveFolder: 'jobfit',
   maxResumes: 2,
-  maxJobPostsPerDay: 50,
+  maxJobPosts: 50,
   staleJobDays: 10,
 };
 

@@ -4,7 +4,9 @@
       "Read(//c/Users/baosh/.claude/plans/**)",
       "Read(//c/Users/baosh/.claude/projects/d--YoutubeAnalyzer/memory/**)",
       "Bash(npm run:*)",
-      "Bash(find d:/JobFit/src -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) -exec grep -l \"fetch\\\\|axios\" {} \\\\;)"
+      "Bash(find d:/JobFit/src -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) -exec grep -l \"fetch\\\\|axios\" {} \\\\;)",
+      "Bash(powershell -Command \"Get-Service -Name '*ollama*' -ErrorAction SilentlyContinue | Select-Object Name, Status, StartType\")",
+      "Bash(powershell -Command \"Get-Process -Name 'ollama' -ErrorAction SilentlyContinue | Select-Object Name, Id, Path\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\baosh\\.claude\\plans"
