@@ -1,0 +1,42 @@
+Match score: 35–45%
+
+🔥 Strong matches
+Clean architecture / CI/CD / testing / performance → very strong (your SCADA + enterprise background fits well)
+Complex systems debugging → strong (real-time, distributed systems, telemetry)
+Embedded / edge-like mindset → partial (SCADA + real-time systems helps)
+AI / RAG / LLM exposure → partial (good signal, but not on-device)
+⚠️ Major skill gaps (why score isn’t higher)
+
+1. Android (BIG gap)
+Missing:
+Kotlin
+Android SDK / Jetpack
+App lifecycle, UI, permissions
+This alone is a hard requirement gap (~40% weight)
+
+2. Android audio subsystem (critical gap)
+
+No experience with:
+audio focus, routing, capture
+MediaSession / AudioManager
+This is very niche but required
+
+3. Mobile / consumer product experience
+You: enterprise + SCADA
+They want:
+shipped consumer apps
+UX, latency, device constraints
+
+4. Voice / speech / assistant systems
+Missing:
+ASR (speech-to-text)
+TTS
+wake word
+conversational UX
+
+5. Embedded / on-device ML
+You have:
+RAG / cloud LLMs
+Missing:
+on-device inference (TensorFlow Lite, etc.)
+model optimization for edge

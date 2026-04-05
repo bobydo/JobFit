@@ -128,7 +128,14 @@ export default function ResultsTab({ results, isAnalyzing, progress, error }: Pr
               <div key={key} style={s.resultCard}>
                 <div style={s.cardHeader} onClick={() => setExpandedKey(expanded ? null : key)}>
                   <ScoreBadge score={r.matchScore} />
-                  <span style={s.resumeName}>{r.resumeSubject}</span>
+                  <span style={s.resumeName}>
+                    {r.resumeSubject}
+                    {r.jobUrl && (() => {
+                      const jobId = r.jobUrl.match(/\/(\d+)\//)?.[1];
+                      const label = jobId ? `#${jobId}` : r.jobSubject;
+                      return <span style={s.jobTag}>[{label}]</span>;
+                    })()}
+                  </span>
                   <span style={s.chevron}>{expanded ? '▲' : '▼'}</span>
                 </div>
                 {expanded && (
@@ -137,7 +144,7 @@ export default function ResultsTab({ results, isAnalyzing, progress, error }: Pr
                       <a
                         href={r.jobUrl}
                         style={s.jobLink}
-                        onClick={(e) => { e.preventDefault(); chrome.tabs.create({ url: r.jobUrl }); }}
+                        onClick={(e) => { e.preventDefault(); chrome.windows.create({ url: r.jobUrl, type: 'normal' }); }}
                       >View job posting →</a>
                     )}
                     <p style={s.summary}>{r.matchSummary}</p>
@@ -199,7 +206,9 @@ const s: Record<string, React.CSSProperties> = {
   resumeName: {
     flex: 1, fontSize: 13, color: '#333', fontWeight: 500,
     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+    display: 'flex', alignItems: 'baseline', gap: 5,
   },
+  jobTag: { fontSize: 11, color: '#888', fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
   chevron: { fontSize: 10, color: '#aaa', flexShrink: 0 },
   cardBody: { borderTop: '1px solid #f0f0f0', padding: '8px 12px 10px', background: '#fafafa' },
   summary: { fontSize: 12, color: '#444', lineHeight: 1.6, margin: '0 0 8px' },

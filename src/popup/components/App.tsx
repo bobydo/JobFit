@@ -77,6 +77,8 @@ export default function App() {
     const errors: string[] = [];
     for (const job of selectedJobs) {
       for (const url of job.urls) {
+        doneUrls++;
+        setAnalyzeProgress({ done: doneUrls, total: totalUrls });
         for (const resume of activeResumes) {
           try {
             let result: AnalysisResult | null = null;
@@ -101,8 +103,6 @@ export default function App() {
             errors.push(`${url} × ${resume.subject}: ${err instanceof Error ? err.message : String(err)}`);
           }
         }
-        doneUrls++;
-        setAnalyzeProgress({ done: doneUrls, total: totalUrls });
       }
     }
     if (errors.length > 0) setAnalyzeError(errors.join('\n'));
