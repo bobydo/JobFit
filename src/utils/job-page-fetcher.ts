@@ -41,8 +41,21 @@ export async function fetchJobPage(url: string): Promise<JobPageData | null> {
     }
   }
 
-  // No JobPosting schema found — not a real job posting page
-  return null;
+  // No JobPosting schema found — fall back to extracting visible text
+  const title = doc.title.trim() || url;
+
+  // Remove script/style/nav/header/footer noise
+  for (const tag of ['script', 'style', 'nav', 'header', 'footer', 'noscript']) {
+    doc.querySelectorAll(tag).forEach((el) => el.remove());
+  }
+
+  const body = (doc.body?.textContent ?? '')
+    .replace(/\s{3,}/g, '\n\n')
+    .trim()
+    .slice(0, 6000);
+
+  if (!body) return null;
+  return { title, body };
 }
 
 /**

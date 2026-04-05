@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { labelExists } from '@gmail/gmail-client';
 import { clearCached, getAnalysisResults, saveAnalysisResults, clearAnalysisResults } from '@storage/cache-store';
 import { getConfig } from '@storage/config-store';
-import { analyzeUrl } from '@analyzer/match-analyzer';
+import { analyzeUrl, analyzePair } from '@analyzer/match-analyzer';
 import OnboardingScreen from './OnboardingScreen';
 import ResumesTab from './ResumesTab';
 import JobPostsTab from './JobPostsTab';
@@ -63,27 +63,47 @@ export default function App() {
     const model = cfg.ollamaModel ?? 'qwen3:8b';
 
     const existing = await getAnalysisResults();
-    const resultMap = new Map(existing.map((r) => [`${r.jobEmailId}::${r.resumeId}`, r]));
+    const resultMap = new Map(existing.map((r) => [`${r.jobEmailId}::${r.jobUrl}::${r.resumeId}`, r]));
 
-    try {
-      for (const job of selectedJobs) {
-        for (const url of job.urls) {
-          for (const resume of activeResumes) {
+    console.log('[JobFit] Starting analysis:', selectedJobs.length, 'jobs,', activeResumes.length, 'resumes');
+    const errors: string[] = [];
+    for (const job of selectedJobs) {
+      console.log('[JobFit] Processing job:', job.subject, '| URLs:', job.urls);
+      for (const url of job.urls) {
+        for (const resume of activeResumes) {
+          console.log('[JobFit]   url:', url, '| resume:', resume.subject);
+          try {
+            let result: import('../types').AnalysisResult | null = null;
+            try {
+              result = await analyzeUrl(resume, url, job.id, baseUrl, model);
+              console.log('[JobFit]   URL result:', result ? 'got page data' : 'null (JS-rendered)');
+            } catch (err) {
+              console.warn('[JobFit]   URL fetch failed:', url, err);
+            }
+            if (!result) {
+              // Fall back to email body; derive a per-URL title from the job ID in the URL
+              const jobIdMatch = url.match(/\/(\d+)\//);
+              const subject = jobIdMatch ? `${job.subject} #${jobIdMatch[1]}` : job.subject;
+              const fakeJob: JobEmail = { id: job.id, subject, body: job.body, urls: [url], date: job.date };
+              console.log('[JobFit]   falling back to email body, title:', subject);
+              result = await analyzePair(resume, fakeJob, baseUrl, model);
+            }
+            console.log('[JobFit]   score:', result.matchScore);
             const key = `${job.id}::${url}::${resume.id}`;
-            const result = await analyzeUrl(resume, url, job.id, baseUrl, model);
-            if (!result) continue;
             resultMap.set(key, result);
             const merged = Array.from(resultMap.values());
             await saveAnalysisResults(merged);
             setResultsData([...merged]);
+          } catch (err) {
+            console.error('[JobFit]   pair failed:', err);
+            errors.push(`${url} × ${resume.subject}: ${err instanceof Error ? err.message : String(err)}`);
           }
         }
       }
-    } catch (err) {
-      setAnalyzeError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setIsAnalyzing(false);
     }
+    console.log('[JobFit] Done. Errors:', errors);
+    if (errors.length > 0) setAnalyzeError(errors.join('\n'));
+    setIsAnalyzing(false);
   }
 
   useEffect(() => {
