@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { listMessages, getMessage, getSubject, getPlainTextBody, getInternalDate } from '@gmail/gmail-client';
-import { getCached, setCached } from '@storage/cache-store';
+import { getCached, setCached, getProcessedIds, markProcessed } from '@storage/cache-store';
 import { getConfig } from '@storage/config-store';
 import type { JobEmail } from '../types';
 
@@ -32,12 +32,16 @@ export default function JobPostsTab({ cachedData, onDataLoaded }: Props) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [processMode, setProcessMode] = useState<ProcessMode>('handpick');
   const [showDailyConfirm, setShowDailyConfirm] = useState(false);
+  const [processedIds, setProcessedIds] = useState<string[]>([]);
+  const [staleCount, setStaleCount] = useState(0);
+  const [staleJobDays, setStaleJobDaysState] = useState(10);
 
-  // Restore saved process mode
+  // Restore saved process mode + processed IDs
   useEffect(() => {
     chrome.storage.local.get('jobPostsProcessMode', (result) => {
       if (result.jobPostsProcessMode) setProcessMode(result.jobPostsProcessMode as ProcessMode);
     });
+    getProcessedIds().then(setProcessedIds);
   }, []);
 
   useEffect(() => {
@@ -77,6 +81,18 @@ export default function JobPostsTab({ cachedData, onDataLoaded }: Props) {
     setStatus('loaded');
   }
 
+  useEffect(() => {
+    if (emails.length === 0 || processedIds.length === 0) return;
+    getConfig().then(({ staleJobDays }) => {
+      setStaleJobDaysState(staleJobDays);
+      const cutoff = Date.now() - staleJobDays * 24 * 60 * 60 * 1000;
+      const stale = emails.filter(
+        (e) => processedIds.includes(e.id) && new Date(e.date).getTime() < cutoff
+      ).length;
+      setStaleCount(stale);
+    });
+  }, [emails, processedIds]);
+
   function toggleSelect(id: string) {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -87,10 +103,20 @@ export default function JobPostsTab({ cachedData, onDataLoaded }: Props) {
     const { maxJobPostsPerDay } = await getConfig();
     const todayStr = new Date().toDateString();
     const todayEmails = emails.filter(
-      (e) => e.urls.length > 0 && new Date(e.date).toDateString() === todayStr
+      (e) => e.urls.length > 0 &&
+        new Date(e.date).toDateString() === todayStr &&
+        !processedIds.includes(e.id)   // skip already processed
     );
-    const pool = todayEmails.length > 0 ? todayEmails : emails.filter((e) => e.urls.length > 0);
+    const pool = todayEmails.length > 0
+      ? todayEmails
+      : emails.filter((e) => e.urls.length > 0 && !processedIds.includes(e.id));
     setSelectedIds(pool.slice(0, maxJobPostsPerDay).map((e) => e.id));
+  }
+
+  async function handleAnalyze() {
+    await markProcessed(...selectedIds);
+    setProcessedIds((prev) => [...new Set([...prev, ...selectedIds])]);
+    // TODO Stage 5: trigger LLM analysis here
   }
 
   function handleModeChange(mode: ProcessMode) {
@@ -127,6 +153,22 @@ export default function JobPostsTab({ cachedData, onDataLoaded }: Props) {
 
   return (
     <div>
+      {/* Stale email cleanup nudge */}
+      {staleCount > 0 && (
+        <div style={s.staleBanner}>
+          <span>ℹ {staleCount} processed post{staleCount !== 1 ? 's' : ''} older than {staleJobDays} days still in Gmail — delete them to keep fetches fast.</span>
+          <a
+            href="https://mail.google.com/mail/#search/label:jobposts"
+            target="_blank"
+            rel="noreferrer"
+            style={s.staleLink}
+            onClick={(e) => { e.preventDefault(); chrome.tabs.create({ url: 'https://mail.google.com/mail/#search/label:jobposts' }); }}
+          >
+            Open Gmail →
+          </a>
+        </div>
+      )}
+
       {/* Mode selector */}
       <div style={s.modeRow}>
         <label style={s.modeLabel}>
@@ -162,6 +204,7 @@ export default function JobPostsTab({ cachedData, onDataLoaded }: Props) {
           <button
             style={{ ...s.analyzeAllBtn, ...(selectedIds.length === 0 ? s.analyzeAllDisabled : {}) }}
             disabled={selectedIds.length === 0}
+            onClick={handleAnalyze}
             title="Coming in Stage 5"
           >
             Analyze selected
@@ -173,11 +216,12 @@ export default function JobPostsTab({ cachedData, onDataLoaded }: Props) {
       {processMode === 'daily' && (
         <div style={s.actionBar}>
           <span style={s.selectionHint}>
-            {selectedIds.length === 0 ? 'No posts for today yet' : `${selectedIds.length} today's posts selected`}
+            {selectedIds.length === 0 ? 'No new posts for today' : `${selectedIds.length} today's posts selected`}
           </span>
           <button
             style={{ ...s.analyzeAllBtn, ...(selectedIds.length === 0 ? s.analyzeAllDisabled : {}) }}
             disabled={selectedIds.length === 0}
+            onClick={handleAnalyze}
             title="Coming in Stage 5"
           >
             Run Daily
@@ -190,8 +234,9 @@ export default function JobPostsTab({ cachedData, onDataLoaded }: Props) {
         {emails.map((email) => {
           const checked = selectedIds.includes(email.id);
           const isExpanded = email.id === expandedId;
+          const isDone = processedIds.includes(email.id);
           return (
-            <div key={email.id} style={{ ...s.card, ...(checked ? s.cardChecked : {}) }}>
+            <div key={email.id} style={{ ...s.card, ...(checked ? s.cardChecked : {}), ...(isDone ? s.cardDone : {}) }}>
               <div style={s.cardHeader}>
                 <label style={s.label}>
                   {processMode === 'handpick' && (
@@ -206,12 +251,12 @@ export default function JobPostsTab({ cachedData, onDataLoaded }: Props) {
                     {email.subject}
                   </span>
                 </label>
-                <span style={{
-                  ...s.dateBadge,
-                  ...(new Date(email.date).toDateString() === new Date().toDateString() ? s.dateBadgeToday : {}),
-                }}>
-                  {formatDate(new Date(email.date))}
-                </span>
+                {isDone
+                  ? <span style={s.doneBadge}>✓ Done</span>
+                  : <span style={{ ...s.dateBadge, ...(new Date(email.date).toDateString() === new Date().toDateString() ? s.dateBadgeToday : {}) }}>
+                      {formatDate(new Date(email.date))}
+                    </span>
+                }
                 <button
                   style={s.expandBtn}
                   onClick={() => setExpandedId(isExpanded ? null : email.id)}
@@ -260,6 +305,8 @@ export default function JobPostsTab({ cachedData, onDataLoaded }: Props) {
 
 const s: Record<string, React.CSSProperties> = {
   center: { color: '#888', textAlign: 'center', paddingTop: 40 },
+  staleBanner: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: '#e8f0fe', border: '1px solid #c5d8fb', borderRadius: 6, padding: '6px 10px', marginBottom: 8, fontSize: 11, color: '#1a56c4', lineHeight: 1.4 },
+  staleLink: { color: '#1a73e8', fontWeight: 600, whiteSpace: 'nowrap', textDecoration: 'none', flexShrink: 0 },
   empty: { textAlign: 'center', paddingTop: 32, color: '#555', lineHeight: 1.6 },
   modeRow: { display: 'flex', gap: 16, marginBottom: 10, alignItems: 'center' },
   modeLabel: { display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
@@ -288,6 +335,8 @@ const s: Record<string, React.CSSProperties> = {
   subjectChecked: { color: '#1a73e8' },
   dateBadge: { fontSize: 10, color: '#aaa', whiteSpace: 'nowrap', flexShrink: 0 },
   dateBadgeToday: { color: '#1a73e8', fontWeight: 600 },
+  cardDone: { opacity: 0.5 },
+  doneBadge: { fontSize: 10, color: '#2e7d32', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 },
   expandBtn: {
     background: 'none', border: 'none', cursor: 'pointer',
     fontSize: 11, color: '#888', padding: '2px 4px', flexShrink: 0, whiteSpace: 'nowrap',

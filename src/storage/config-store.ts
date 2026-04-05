@@ -17,6 +17,7 @@ export interface AppConfig {
   saveFolder: string;
   maxResumes: number;
   maxJobPostsPerDay: number;
+  staleJobDays: number;
 }
 
 const DEFAULTS: AppConfig = {
@@ -24,6 +25,7 @@ const DEFAULTS: AppConfig = {
   saveFolder: 'jobfit',
   maxResumes: 2,
   maxJobPostsPerDay: 50,
+  staleJobDays: 10,
 };
 
 export async function getConfig(): Promise<AppConfig> {

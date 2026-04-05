@@ -21,6 +21,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [saveFolder, setSaveFolder] = useState('jobfit');
   const [maxResumes, setMaxResumes] = useState(2);
   const [maxJobPostsPerDay, setMaxJobPostsPerDay] = useState(50);
+  const [staleJobDays, setStaleJobDays] = useState(10);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
       setSaveFolder(cfg.saveFolder);
       setMaxResumes(cfg.maxResumes);
       setMaxJobPostsPerDay(cfg.maxJobPostsPerDay);
+      setStaleJobDays(cfg.staleJobDays);
       if (cfg.subscriptionToken) setTokenStatus('ok');
       if (cfg.apiKey) setKeyStatus('ok');
     });
@@ -120,6 +122,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
       saveFolder: saveFolder.trim() || 'jobfit',
       maxResumes: Math.min(5, Math.max(1, maxResumes)),
       maxJobPostsPerDay: Math.min(100, Math.max(1, maxJobPostsPerDay)),
+      staleJobDays: Math.min(90, Math.max(1, staleJobDays)),
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
@@ -239,6 +242,14 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
             type="number" min={1} max={100}
             value={maxJobPostsPerDay}
             onChange={(e) => setMaxJobPostsPerDay(Number(e.target.value))}
+          />
+
+          <div style={s.fieldLabel}>Stale job posts cleanup reminder <span style={s.fieldHint}>(days, 1–90)</span></div>
+          <input
+            style={{ ...s.input, width: 60 }}
+            type="number" min={1} max={90}
+            value={staleJobDays}
+            onChange={(e) => setStaleJobDays(Number(e.target.value))}
           />
 
           <div style={s.fieldLabel}>Download folder</div>

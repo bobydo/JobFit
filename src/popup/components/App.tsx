@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { labelExists } from '@gmail/gmail-client';
 import { clearCached } from '@storage/cache-store';
+import { getConfig } from '@storage/config-store';
 import OnboardingScreen from './OnboardingScreen';
 import ResumesTab from './ResumesTab';
 import JobPostsTab from './JobPostsTab';
@@ -23,25 +24,30 @@ export default function App() {
   const [activeResumeIds, setActiveResumeIds] = useState<string[]>([]);
   const [resumesData, setResumesData] = useState<Resume[] | null>(null);
   const [jobEmailsData, setJobEmailsData] = useState<JobEmail[] | null>(null);
+  const [maxResumes, setMaxResumes] = useState(2);
+  const [storageReady, setStorageReady] = useState(false);
 
-  // Restore saved selection on mount
+  // Restore saved selection FIRST, only then allow ResumesTab to mount
   useEffect(() => {
     chrome.storage.local.get('activeResumeIds', (result) => {
       if (result.activeResumeIds?.length) setActiveResumeIds(result.activeResumeIds);
+      setStorageReady(true); // ResumesTab renders after this
     });
+    getConfig().then((cfg) => setMaxResumes(cfg.maxResumes));
   }, []);
 
-  // Persist selection whenever it changes (skip empty initial state)
+  // Persist selection — only after storage has been restored
   useEffect(() => {
+    if (!storageReady) return;
     if (activeResumeIds.length > 0) {
       chrome.storage.local.set({ activeResumeIds });
     }
-  }, [activeResumeIds]);
+  }, [activeResumeIds, storageReady]);
 
   function toggleResume(id: string) {
     setActiveResumeIds((prev) => {
       if (prev.includes(id)) return prev.filter((x) => x !== id);
-      if (prev.length >= 2) return prev; // cap at 2
+      if (prev.length >= maxResumes) return prev;
       return [...prev, id];
     });
   }
@@ -71,7 +77,7 @@ export default function App() {
     setResumesData(null);
     setJobEmailsData(null);
     setActiveResumeIds([]);
-    checkLabels();
+    await checkLabels();
   }
 
   useEffect(() => { checkLabels(); }, []);
@@ -120,13 +126,14 @@ export default function App() {
 
           {/* Tab content */}
           <div style={styles.content}>
-            {activeTab === 'resumes' && (
+            {activeTab === 'resumes' && storageReady && (
               <ResumesTab
                 activeResumeIds={activeResumeIds}
                 onToggle={toggleResume}
                 onInitIds={setActiveResumeIds}
                 cachedData={resumesData}
                 onDataLoaded={setResumesData}
+                maxResumes={maxResumes}
               />
             )}
             {activeTab === 'jobposts' && (

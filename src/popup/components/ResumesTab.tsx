@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { listMessages, getMessage, getSubject, getPlainTextBody } from '@gmail/gmail-client';
 import { getCached, setCached } from '@storage/cache-store';
-import { getConfig } from '@storage/config-store';
 import type { Resume } from '../types';
 
 interface Props {
@@ -10,9 +9,10 @@ interface Props {
   onInitIds: (ids: string[]) => void;
   cachedData: Resume[] | null;
   onDataLoaded: (data: Resume[]) => void;
+  maxResumes: number;
 }
 
-export default function ResumesTab({ activeResumeIds, onToggle, onInitIds, cachedData, onDataLoaded }: Props) {
+export default function ResumesTab({ activeResumeIds, onToggle, onInitIds, cachedData, onDataLoaded, maxResumes }: Props) {
   const [resumes, setResumes] = useState<Resume[]>(cachedData ?? []);
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>(cachedData ? 'loaded' : 'loading');
   const [error, setError] = useState('');
@@ -32,8 +32,7 @@ export default function ResumesTab({ activeResumeIds, onToggle, onInitIds, cache
         apply(stored);
         return;
       }
-      const { maxResumes } = await getConfig();
-      const stubs = await listMessages('resumes', maxResumes);
+      const stubs = await listMessages('resumes', 20); // fetch all, selection cap is separate
       const messages = await Promise.all(stubs.map((s) => getMessage(s.id)));
       const loaded: Resume[] = messages.map((msg) => ({
         id: msg.id,
@@ -52,7 +51,7 @@ export default function ResumesTab({ activeResumeIds, onToggle, onInitIds, cache
     setResumes(data);
     onDataLoaded(data);
     if (activeResumeIds.length === 0 && data.length > 0) {
-      getConfig().then(({ maxResumes }) => onInitIds(data.slice(0, maxResumes).map((r) => r.id)));
+      onInitIds([data[0].id]); // auto-select only the most recent; user picks the second
     }
     setStatus('loaded');
   }
@@ -75,7 +74,7 @@ export default function ResumesTab({ activeResumeIds, onToggle, onInitIds, cache
   return (
     <div>
       <div style={s.hint}>
-        Select up to 2 for analysis ({activeResumeIds.length}/2 selected)
+        Select up to {maxResumes} for analysis ({activeResumeIds.length}/{maxResumes} selected)
       </div>
       {resumes.map((r) => {
         const checked = activeResumeIds.includes(r.id);

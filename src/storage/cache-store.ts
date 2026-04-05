@@ -20,3 +20,22 @@ export async function setCached<T>(key: string, data: T): Promise<void> {
 export async function clearCached(...keys: string[]): Promise<void> {
   await chrome.storage.local.remove(keys);
 }
+
+// ── Processed job post IDs ────────────────────────────────────────────────
+
+const PROCESSED_KEY = 'processedJobIds';
+
+export async function getProcessedIds(): Promise<string[]> {
+  const result = await chrome.storage.local.get(PROCESSED_KEY);
+  return result[PROCESSED_KEY] ?? [];
+}
+
+export async function markProcessed(...ids: string[]): Promise<void> {
+  const existing = await getProcessedIds();
+  const merged = [...new Set([...existing, ...ids])];
+  await chrome.storage.local.set({ [PROCESSED_KEY]: merged });
+}
+
+export async function clearProcessedIds(): Promise<void> {
+  await chrome.storage.local.remove(PROCESSED_KEY);
+}
