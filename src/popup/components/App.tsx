@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react';
 import { labelExists } from '@gmail/gmail-client';
-import { clearCached } from '@storage/cache-store';
+import { clearCached, getAnalysisResults, saveAnalysisResults, clearAnalysisResults } from '@storage/cache-store';
 import { getConfig } from '@storage/config-store';
+import { analyzePair } from '@analyzer/match-analyzer';
 import OnboardingScreen from './OnboardingScreen';
 import ResumesTab from './ResumesTab';
 import JobPostsTab from './JobPostsTab';
 import ResultsTab from './ResultsTab';
 import SettingsPanel from './SettingsPanel';
-import type { Resume, JobEmail } from '../types';
+import type { Resume, JobEmail, AnalysisResult } from '../types';
 
 type Tab = 'resumes' | 'jobposts' | 'results';
 
@@ -26,6 +27,9 @@ export default function App() {
   const [jobEmailsData, setJobEmailsData] = useState<JobEmail[] | null>(null);
   const [maxResumes, setMaxResumes] = useState(2);
   const [storageReady, setStorageReady] = useState(false);
+  const [resultsData, setResultsData] = useState<AnalysisResult[]>([]);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
 
   // Restore saved selection FIRST, only then allow ResumesTab to mount
   useEffect(() => {
@@ -34,7 +38,41 @@ export default function App() {
       setStorageReady(true); // ResumesTab renders after this
     });
     getConfig().then((cfg) => setMaxResumes(cfg.maxResumes));
+    getAnalysisResults().then(setResultsData);
   }, []);
+
+  async function handleAnalyze(selectedJobs: JobEmail[]) {
+    if (!resumesData || resumesData.length === 0 || activeResumeIds.length === 0) return;
+    const activeResumes = resumesData.filter((r) => activeResumeIds.includes(r.id));
+    const cfg = await getConfig();
+    if (cfg.mode !== 'ollama') return;
+    const baseUrl = cfg.ollamaBaseUrl ?? 'http://localhost:11434';
+    const model = cfg.ollamaModel ?? 'qwen3:8b';
+
+    setIsAnalyzing(true);
+    setAnalyzeError(null);
+    setActiveTab('results');
+
+    const existing = await getAnalysisResults();
+    const resultMap = new Map(existing.map((r) => [`${r.jobEmailId}::${r.resumeId}`, r]));
+
+    try {
+      for (const job of selectedJobs) {
+        for (const resume of activeResumes) {
+          const key = `${job.id}::${resume.id}`;
+          const result = await analyzePair(resume, job, baseUrl, model);
+          resultMap.set(key, result);
+          const merged = Array.from(resultMap.values());
+          await saveAnalysisResults(merged);
+          setResultsData([...merged]);
+        }
+      }
+    } catch (err) {
+      setAnalyzeError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }
 
   // Persist selection — only after storage has been restored
   useEffect(() => {
@@ -73,10 +111,13 @@ export default function App() {
 
   async function handleRefresh() {
     await clearCached('resumes', 'jobposts');
+    await clearAnalysisResults();
     chrome.storage.local.remove('activeResumeIds');
     setResumesData(null);
     setJobEmailsData(null);
     setActiveResumeIds([]);
+    setResultsData([]);
+    setAnalyzeError(null);
     await checkLabels();
   }
 
@@ -140,9 +181,17 @@ export default function App() {
               <JobPostsTab
                 cachedData={jobEmailsData}
                 onDataLoaded={setJobEmailsData}
+                onAnalyze={handleAnalyze}
+                isAnalyzing={isAnalyzing}
               />
             )}
-            {activeTab === 'results' && <ResultsTab />}
+            {activeTab === 'results' && (
+              <ResultsTab
+                results={resultsData}
+                isAnalyzing={isAnalyzing}
+                error={analyzeError}
+              />
+            )}
           </div>
 
           {/* Footer */}

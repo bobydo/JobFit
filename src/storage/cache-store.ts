@@ -39,3 +39,23 @@ export async function markProcessed(...ids: string[]): Promise<void> {
 export async function clearProcessedIds(): Promise<void> {
   await chrome.storage.local.remove(PROCESSED_KEY);
 }
+
+// ── Analysis results ──────────────────────────────────────────────────────
+
+const RESULTS_KEY = 'analysisResults';
+
+export async function getAnalysisResults(): Promise<import('../popup/types').AnalysisResult[]> {
+  const result = await chrome.storage.local.get(RESULTS_KEY);
+  const raw: Array<import('../popup/types').AnalysisResult & { analyzedAt: string }> = result[RESULTS_KEY] ?? [];
+  return raw.map((r) => ({ ...r, analyzedAt: new Date(r.analyzedAt) }));
+}
+
+export async function saveAnalysisResults(
+  results: import('../popup/types').AnalysisResult[]
+): Promise<void> {
+  await chrome.storage.local.set({ [RESULTS_KEY]: results });
+}
+
+export async function clearAnalysisResults(): Promise<void> {
+  await chrome.storage.local.remove(RESULTS_KEY);
+}

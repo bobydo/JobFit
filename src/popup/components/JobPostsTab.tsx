@@ -22,9 +22,11 @@ function formatDate(date: Date): string {
 interface Props {
   cachedData: JobEmail[] | null;
   onDataLoaded: (data: JobEmail[]) => void;
+  onAnalyze: (jobs: JobEmail[]) => void;
+  isAnalyzing: boolean;
 }
 
-export default function JobPostsTab({ cachedData, onDataLoaded }: Props) {
+export default function JobPostsTab({ cachedData, onDataLoaded, onAnalyze, isAnalyzing }: Props) {
   const [emails, setEmails] = useState<JobEmail[]>(cachedData ?? []);
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>(cachedData ? 'loaded' : 'loading');
   const [error, setError] = useState('');
@@ -61,12 +63,16 @@ export default function JobPostsTab({ cachedData, onDataLoaded }: Props) {
       const { maxJobPostsPerDay } = await getConfig();
       const stubs = await listMessages('jobposts', maxJobPostsPerDay);
       const messages = await Promise.all(stubs.map((s) => getMessage(s.id)));
-      const loaded: JobEmail[] = messages.map((msg) => ({
-        id: msg.id,
-        subject: getSubject(msg),
-        urls: extractUrls(getPlainTextBody(msg)),
-        date: getInternalDate(msg),
-      }));
+      const loaded: JobEmail[] = messages.map((msg) => {
+        const body = getPlainTextBody(msg);
+        return {
+          id: msg.id,
+          subject: getSubject(msg),
+          body,
+          urls: extractUrls(body),
+          date: getInternalDate(msg),
+        };
+      });
       await setCached('jobposts', loaded);
       apply(loaded);
     } catch (err) {
@@ -114,9 +120,10 @@ export default function JobPostsTab({ cachedData, onDataLoaded }: Props) {
   }
 
   async function handleAnalyze() {
+    const selectedEmails = emails.filter((e) => selectedIds.includes(e.id));
     await markProcessed(...selectedIds);
     setProcessedIds((prev) => [...new Set([...prev, ...selectedIds])]);
-    // TODO Stage 5: trigger LLM analysis here
+    onAnalyze(selectedEmails);
   }
 
   function handleModeChange(mode: ProcessMode) {
@@ -202,12 +209,11 @@ export default function JobPostsTab({ cachedData, onDataLoaded }: Props) {
             {selectedIds.length === 0 ? 'Check posts below to analyze' : `${selectedIds.length} selected`}
           </span>
           <button
-            style={{ ...s.analyzeAllBtn, ...(selectedIds.length === 0 ? s.analyzeAllDisabled : {}) }}
-            disabled={selectedIds.length === 0}
+            style={{ ...s.analyzeAllBtn, ...(selectedIds.length === 0 || isAnalyzing ? s.analyzeAllDisabled : {}) }}
+            disabled={selectedIds.length === 0 || isAnalyzing}
             onClick={handleAnalyze}
-            title="Coming in Stage 5"
           >
-            Analyze selected
+            {isAnalyzing ? 'Analyzing…' : 'Analyze selected'}
           </button>
         </div>
       )}
@@ -219,12 +225,11 @@ export default function JobPostsTab({ cachedData, onDataLoaded }: Props) {
             {selectedIds.length === 0 ? 'No new posts for today' : `${selectedIds.length} today's posts selected`}
           </span>
           <button
-            style={{ ...s.analyzeAllBtn, ...(selectedIds.length === 0 ? s.analyzeAllDisabled : {}) }}
-            disabled={selectedIds.length === 0}
+            style={{ ...s.analyzeAllBtn, ...(selectedIds.length === 0 || isAnalyzing ? s.analyzeAllDisabled : {}) }}
+            disabled={selectedIds.length === 0 || isAnalyzing}
             onClick={handleAnalyze}
-            title="Coming in Stage 5"
           >
-            Run Daily
+            {isAnalyzing ? 'Analyzing…' : 'Run Daily'}
           </button>
         </div>
       )}

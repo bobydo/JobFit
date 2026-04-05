@@ -11,8 +11,9 @@ export interface AppConfig {
   byokProvider?: ByokProvider;
   apiKey?: string;
   byokAcknowledged?: boolean;
-  // Ollama
+  // Ollama (local dev — no subscription required)
   ollamaModel?: string;
+  ollamaBaseUrl?: string;
   // General
   saveFolder: string;
   maxResumes: number;

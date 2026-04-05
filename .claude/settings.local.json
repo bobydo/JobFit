@@ -3,7 +3,8 @@
     "allow": [
       "Read(//c/Users/baosh/.claude/plans/**)",
       "Read(//c/Users/baosh/.claude/projects/d--YoutubeAnalyzer/memory/**)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(find d:/JobFit/src -type f \\\\\\( -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) -exec grep -l \"fetch\\\\|axios\" {} \\\\;)"
     ],
     "additionalDirectories": [
       "C:\\Users\\baosh\\.claude\\plans"

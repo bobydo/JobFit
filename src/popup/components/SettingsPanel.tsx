@@ -18,6 +18,9 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [showKey, setShowKey] = useState(false);
   const [keyStatus, setKeyStatus] = useState<'idle' | 'validating' | 'ok' | 'error'>('idle');
   const [showByokWarning, setShowByokWarning] = useState(false);
+  const [ollamaModel, setOllamaModel] = useState('qwen3:8b');
+  const [ollamaBaseUrl, setOllamaBaseUrl] = useState('http://localhost:11434');
+  const [ollamaStatus, setOllamaStatus] = useState<'idle' | 'validating' | 'ok' | 'error'>('idle');
   const [saveFolder, setSaveFolder] = useState('jobfit');
   const [maxResumes, setMaxResumes] = useState(2);
   const [maxJobPostsPerDay, setMaxJobPostsPerDay] = useState(50);
@@ -35,8 +38,11 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
       setMaxResumes(cfg.maxResumes);
       setMaxJobPostsPerDay(cfg.maxJobPostsPerDay);
       setStaleJobDays(cfg.staleJobDays);
+      setOllamaModel(cfg.ollamaModel ?? 'qwen3:8b');
+      setOllamaBaseUrl(cfg.ollamaBaseUrl ?? 'http://localhost:11434');
       if (cfg.subscriptionToken) setTokenStatus('ok');
       if (cfg.apiKey) setKeyStatus('ok');
+      if (cfg.mode === 'ollama') setOllamaStatus('ok');
     });
   }, []);
 
@@ -115,6 +121,21 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
     await saveConfig({ byokAcknowledged: true });
     setShowByokWarning(false);
     await doSaveApiKey();
+  }
+
+  async function saveOllama() {
+    const url = ollamaBaseUrl.trim() || 'http://localhost:11434';
+    const model = ollamaModel.trim() || 'qwen3:8b';
+    setOllamaStatus('validating');
+    try {
+      const res = await fetch(`${url}/api/tags`);
+      if (!res.ok) throw new Error();
+      await saveConfig({ mode: 'ollama', ollamaModel: model, ollamaBaseUrl: url });
+      setMode('ollama');
+      setOllamaStatus('ok');
+    } catch {
+      setOllamaStatus('error');
+    }
   }
 
   async function handleSaveGeneral() {
@@ -222,6 +243,43 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
               </div>
             </div>
           )}
+
+          {/* Ollama — local dev, no subscription */}
+          <label style={s.radioRow}>
+            <input type="radio" checked={mode === 'ollama'} onChange={() => setMode('ollama')} />
+            <span style={s.radioLabel}>Ollama <span style={s.devBadge}>dev</span></span>
+          </label>
+
+          {mode === 'ollama' && (
+            <div style={s.indent}>
+              <div style={s.hint}>Runs locally — no subscription or API key required.</div>
+
+              <div style={s.fieldLabel}>Base URL</div>
+              <input
+                style={s.input}
+                type="text"
+                value={ollamaBaseUrl}
+                onChange={(e) => { setOllamaBaseUrl(e.target.value); setOllamaStatus('idle'); }}
+                placeholder="http://localhost:11434"
+              />
+
+              <div style={s.fieldLabel}>Model</div>
+              <div style={s.row}>
+                <input
+                  style={s.input}
+                  type="text"
+                  value={ollamaModel}
+                  onChange={(e) => { setOllamaModel(e.target.value); setOllamaStatus('idle'); }}
+                  placeholder="qwen3:8b"
+                />
+                <button style={s.saveBtn} onClick={saveOllama} disabled={ollamaStatus === 'validating'}>
+                  {ollamaStatus === 'validating' ? '…' : 'Test'}
+                </button>
+              </div>
+              {ollamaStatus === 'ok'    && <div style={s.ok}>Connected — model saved</div>}
+              {ollamaStatus === 'error' && <div style={s.err}>Could not reach Ollama — is it running?</div>}
+            </div>
+          )}
         </div>
 
         {/* ── General ── */}
@@ -309,6 +367,7 @@ const s: Record<string, React.CSSProperties> = {
   ok:           { fontSize: 11, color: '#2e7d32', marginTop: 4 },
   err:          { fontSize: 11, color: '#c62828', marginTop: 4 },
   waiverBox:    { fontSize: 10, color: '#888', border: '1px solid #e0e0e0', borderRadius: 4, padding: '6px 8px', marginTop: 8, lineHeight: 1.5 },
+  devBadge:     { fontSize: 9, fontWeight: 700, color: '#fff', background: '#2e7d32', borderRadius: 3, padding: '1px 5px', marginLeft: 4, verticalAlign: 'middle' },
   planRow:      { display: 'flex', gap: 8, marginBottom: 10 },
   planCard:     { flex: 1, border: '1px solid #e0e0e0', borderRadius: 6, padding: '8px 10px' },
   planCardPro:  { borderColor: '#1a73e8' },
