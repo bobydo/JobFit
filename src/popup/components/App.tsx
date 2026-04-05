@@ -30,29 +30,34 @@ export default function App() {
   const [resultsData, setResultsData] = useState<AnalysisResult[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
-  const [showCloseWarning, setShowCloseWarning] = useState(false);
+  const [analyzeProgress, setAnalyzeProgress] = useState<{ done: number; total: number } | null>(null);
+  // True when reopened as a standalone window to keep analysis alive
+  const isStandalone = new URLSearchParams(window.location.search).has('analyze');
 
-  // Restore saved selection FIRST, only then allow ResumesTab to mount
   useEffect(() => {
-    chrome.storage.local.get('activeResumeIds', (result) => {
-      if (result.activeResumeIds?.length) setActiveResumeIds(result.activeResumeIds);
-      setStorageReady(true); // ResumesTab renders after this
+    chrome.storage.local.get('activeResumeIds', (stored) => {
+      if (stored.activeResumeIds?.length) setActiveResumeIds(stored.activeResumeIds);
+      setStorageReady(true);
     });
     getConfig().then((cfg) => setMaxResumes(cfg.maxResumes));
     getAnalysisResults().then(setResultsData);
+
+    // Standalone window: load pending jobs+resumes from storage and start immediately
+    if (isStandalone) {
+      chrome.storage.local.get('pendingAnalysis', (stored) => {
+        if (!stored.pendingAnalysis) return;
+        chrome.storage.local.remove('pendingAnalysis');
+        const { selectedJobs, resumes } = stored.pendingAnalysis as { selectedJobs: JobEmail[]; resumes: Resume[] };
+        setActiveTab('results');
+        runAnalysis(selectedJobs, resumes);
+      });
+    }
   }, []);
 
-  async function handleAnalyze(selectedJobs: JobEmail[]) {
+  async function runAnalysis(selectedJobs: JobEmail[], activeResumes: Resume[]) {
     setIsAnalyzing(true);
     setAnalyzeError(null);
-    setActiveTab('results');
 
-    if (!resumesData || resumesData.length === 0 || activeResumeIds.length === 0) {
-      setAnalyzeError('No resumes selected. Go to the Resumes tab and select at least one.');
-      setIsAnalyzing(false);
-      return;
-    }
-    const activeResumes = resumesData.filter((r) => activeResumeIds.includes(r.id));
     const cfg = await getConfig();
     if (cfg.mode !== 'ollama') {
       setAnalyzeError('Please configure Ollama in Settings before analyzing.');
@@ -65,56 +70,66 @@ export default function App() {
     const existing = await getAnalysisResults();
     const resultMap = new Map(existing.map((r) => [`${r.jobEmailId}::${r.jobUrl}::${r.resumeId}`, r]));
 
-    console.log('[JobFit] Starting analysis:', selectedJobs.length, 'jobs,', activeResumes.length, 'resumes');
+    const totalUrls = selectedJobs.reduce((sum, j) => sum + j.urls.length, 0);
+    let doneUrls = 0;
+    setAnalyzeProgress({ done: 0, total: totalUrls });
+
     const errors: string[] = [];
     for (const job of selectedJobs) {
-      console.log('[JobFit] Processing job:', job.subject, '| URLs:', job.urls);
       for (const url of job.urls) {
         for (const resume of activeResumes) {
-          console.log('[JobFit]   url:', url, '| resume:', resume.subject);
           try {
-            let result: import('../types').AnalysisResult | null = null;
+            let result: AnalysisResult | null = null;
             try {
               result = await analyzeUrl(resume, url, job.id, baseUrl, model);
-              console.log('[JobFit]   URL result:', result ? 'got page data' : 'null (JS-rendered)');
             } catch (err) {
-              console.warn('[JobFit]   URL fetch failed:', url, err);
+              console.warn('[JobFit] URL fetch failed:', url, err);
             }
             if (!result) {
-              // Fall back to email body; derive a per-URL title from the job ID in the URL
               const jobIdMatch = url.match(/\/(\d+)\//);
               const subject = jobIdMatch ? `${job.subject} #${jobIdMatch[1]}` : job.subject;
               const fakeJob: JobEmail = { id: job.id, subject, body: job.body, urls: [url], date: job.date };
-              console.log('[JobFit]   falling back to email body, title:', subject);
               result = await analyzePair(resume, fakeJob, baseUrl, model);
             }
-            console.log('[JobFit]   score:', result.matchScore);
             const key = `${job.id}::${url}::${resume.id}`;
             resultMap.set(key, result);
             const merged = Array.from(resultMap.values());
             await saveAnalysisResults(merged);
             setResultsData([...merged]);
           } catch (err) {
-            console.error('[JobFit]   pair failed:', err);
+            console.error('[JobFit] pair failed:', err);
             errors.push(`${url} × ${resume.subject}: ${err instanceof Error ? err.message : String(err)}`);
           }
         }
+        doneUrls++;
+        setAnalyzeProgress({ done: doneUrls, total: totalUrls });
       }
     }
-    console.log('[JobFit] Done. Errors:', errors);
     if (errors.length > 0) setAnalyzeError(errors.join('\n'));
+    setAnalyzeProgress(null);
     setIsAnalyzing(false);
   }
 
-  useEffect(() => {
-    if (!isAnalyzing) { setShowCloseWarning(false); return; }
-    function handleBlur() {
-      window.focus();
-      setShowCloseWarning(true);
+  async function handleAnalyze(selectedJobs: JobEmail[]) {
+    if (!resumesData || resumesData.length === 0 || activeResumeIds.length === 0) {
+      setAnalyzeError('No resumes selected. Go to the Resumes tab and select at least one.');
+      return;
     }
-    window.addEventListener('blur', handleBlur);
-    return () => window.removeEventListener('blur', handleBlur);
-  }, [isAnalyzing]);
+    const activeResumes = resumesData.filter((r) => activeResumeIds.includes(r.id));
+    const cfg = await getConfig();
+    if (cfg.mode !== 'ollama') {
+      setAnalyzeError('Please configure Ollama in Settings before analyzing.');
+      return;
+    }
+
+    // Save jobs + full resume objects, then reopen as standalone window that won't close on blur
+    await new Promise<void>((resolve) =>
+      chrome.storage.local.set({ pendingAnalysis: { selectedJobs, resumes: activeResumes } }, resolve)
+    );
+    const popupUrl = chrome.runtime.getURL('src/popup/popup.html') + '?analyze';
+    chrome.windows.create({ url: popupUrl, type: 'popup', width: 440, height: 620 });
+    window.close();
+  }
 
   // Persist selection — only after storage has been restored
   useEffect(() => {
@@ -192,6 +207,12 @@ export default function App() {
         <button style={styles.iconBtn} onClick={() => setShowSettings(!showSettings)}>⚙</button>
       </div>
 
+      {isAnalyzing && (
+        <div style={styles.closeBar}>
+          <span style={styles.closeBarText}>[<span style={styles.closeBarX} onClick={() => window.close()}>X</span>] to close, otherwise leave it open</span>
+        </div>
+      )}
+
       {showSettings ? (
         <SettingsPanel onClose={() => setShowSettings(false)} />
       ) : (
@@ -233,6 +254,7 @@ export default function App() {
               <ResultsTab
                 results={resultsData}
                 isAnalyzing={isAnalyzing}
+                progress={analyzeProgress}
                 error={analyzeError}
               />
             )}
@@ -243,18 +265,6 @@ export default function App() {
             <button style={styles.refreshBtn} onClick={handleRefresh}>↺ Refresh</button>
           </div>
         </>
-      )}
-      {showCloseWarning && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalBox}>
-            <div style={styles.modalTitle}>Analysis in progress</div>
-            <p style={styles.modalText}>If you close this popup, analysis will stop and you'll need to re-run it.</p>
-            <div style={styles.modalBtns}>
-              <button style={styles.modalClose} onClick={() => window.close()}>Close anyway</button>
-              <button style={styles.modalKeep} onClick={() => { setShowCloseWarning(false); window.focus(); }}>Keep open</button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
@@ -273,11 +283,7 @@ const styles: Record<string, React.CSSProperties> = {
   footer: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', borderTop: '1px solid #e5e5e5' },
   refreshBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#555', fontSize: 13 },
   placeholder: { padding: 16, color: '#888', textAlign: 'center' },
-  modalOverlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200 },
-  modalBox: { background: '#fff', borderRadius: 8, padding: 20, maxWidth: 280, margin: '0 16px' },
-  modalTitle: { fontWeight: 700, fontSize: 14, marginBottom: 8 },
-  modalText: { fontSize: 12, color: '#444', lineHeight: 1.6, marginBottom: 16 },
-  modalBtns: { display: 'flex', gap: 8, justifyContent: 'flex-end' },
-  modalClose: { padding: '6px 12px', fontSize: 12, background: 'none', border: '1px solid #ccc', borderRadius: 4, cursor: 'pointer' },
-  modalKeep: { padding: '6px 12px', fontSize: 12, background: '#1a73e8', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' },
+  closeBar: { borderTop: '1px solid #e5e5e5', padding: '6px 14px', background: '#fff8e1', textAlign: 'center' },
+  closeBarText: { fontSize: 12, color: '#555' },
+  closeBarX: { fontWeight: 700, color: '#c62828', cursor: 'pointer' },
 };

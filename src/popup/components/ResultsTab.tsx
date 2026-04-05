@@ -4,6 +4,7 @@ import type { AnalysisResult } from '../types';
 interface Props {
   results: AnalysisResult[];
   isAnalyzing: boolean;
+  progress: { done: number; total: number } | null;
   error: string | null;
 }
 
@@ -71,7 +72,7 @@ function ScoreBadge({ score }: { score: number }) {
   );
 }
 
-export default function ResultsTab({ results, isAnalyzing, error }: Props) {
+export default function ResultsTab({ results, isAnalyzing, progress, error }: Props) {
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   if (isAnalyzing && results.length === 0) {
@@ -110,7 +111,9 @@ export default function ResultsTab({ results, isAnalyzing, error }: Props) {
         <button style={s.downloadBtn} onClick={() => downloadResults(results)}>↓ Download Report</button>
       </div>
       {isAnalyzing && (
-        <div style={s.analyzingBanner}>⚠ Analyzing… Keep this popup open until done.</div>
+        <div style={s.analyzingBanner}>
+          ⚠ Analyzing… {progress ? `${progress.done}/${progress.total} jobs` : ''}
+        </div>
       )}
       {error && (
         <div style={s.errorBanner}>{error}</div>
