@@ -59,6 +59,69 @@ export async function fetchJobPage(url: string): Promise<JobPageData | null> {
 }
 
 /**
+ * Fetch a JS-rendered page by opening it in a hidden browser tab.
+ * Falls back to null if the tab can't be scripted or body is empty.
+ */
+export async function fetchJobPageViaTab(url: string): Promise<JobPageData | null> {
+  return new Promise((resolve) => {
+    chrome.tabs.create({ url, active: false }, (tab) => {
+      if (!tab.id) { resolve(null); return; }
+      const tabId = tab.id;
+
+      // Timeout in case the page never finishes loading
+      const timeout = setTimeout(() => {
+        chrome.tabs.onUpdated.removeListener(onUpdated);
+        chrome.tabs.remove(tabId, () => {});
+        resolve(null);
+      }, 25000);
+
+      function onUpdated(id: number, info: chrome.tabs.TabChangeInfo) {
+        if (id !== tabId || info.status !== 'complete') return;
+        chrome.tabs.onUpdated.removeListener(onUpdated);
+        clearTimeout(timeout);
+        chrome.scripting.executeScript(
+          {
+            target: { tabId },
+            func: () => {
+              // Generic expand: click any button/link whose text suggests "show more"
+              const expandPattern = /^(see more|show more|read more|view more|expand|more|\.{3})$/i;
+              document.querySelectorAll('button, a, span[role="button"]').forEach((el) => {
+                if (expandPattern.test((el.textContent ?? '').trim())) {
+                  (el as HTMLElement).click();
+                }
+              });
+            },
+          },
+          () => {
+            // Wait briefly for expanded content to render, then extract text
+            setTimeout(() => {
+              chrome.scripting.executeScript(
+                {
+                  target: { tabId },
+                  func: () => ({
+                    title: document.title,
+                    body: (document.body?.innerText ?? '')
+                      .replace(/\s{3,}/g, '\n\n')
+                      .trim()
+                      .slice(0, 6000),
+                  }),
+                },
+                (results) => {
+                  chrome.tabs.remove(tabId, () => {});
+                  const data = results?.[0]?.result as JobPageData | undefined;
+                  resolve(data?.body ? data : null);
+                }
+              );
+            }, 1500);
+          }
+        );
+      }
+      chrome.tabs.onUpdated.addListener(onUpdated);
+    });
+  });
+}
+
+/**
  * Extract candidate URLs from raw email body text.
  */
 export function extractCandidateUrls(text: string): string[] {

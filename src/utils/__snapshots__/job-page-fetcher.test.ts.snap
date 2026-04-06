@@ -8,8 +8,5 @@ exports[`extractCandidateUrls > snapshot of extracted URLs from LinkedIn alert e
   "/comm/jobs/view/4384386944/",
   "/comm/jobs/view/4372626306/",
   "/comm/jobs/view/4397528264/",
-  "/comm/jobs/search",
-  "/comm/jobs/alerts",
-  "/job-alert-email-unsubscribe",
 ]
 `;

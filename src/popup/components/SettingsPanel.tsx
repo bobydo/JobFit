@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getConfig, saveConfig, AppConfig, LLMMode, ByokProvider } from '@storage/config-store';
-import { WORKER_URL, STRIPE_PRO_URL } from '../../config';
+import { WORKER_URL, STRIPE_PRO_URL, OLLAMA_MODEL, OLLAMA_BASE_URL, LANGFUSE_BASE_URL } from '../../config';
 
 const BYOK_HINTS: Record<ByokProvider, string> = {
   groq:      'Get a free key at console.groq.com → API Keys. Free tier covers ~14,400 req/day.',
@@ -18,9 +18,14 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [showKey, setShowKey] = useState(false);
   const [keyStatus, setKeyStatus] = useState<'idle' | 'validating' | 'ok' | 'error'>('idle');
   const [showByokWarning, setShowByokWarning] = useState(false);
-  const [ollamaModel, setOllamaModel] = useState('qwen3:8b');
-  const [ollamaBaseUrl, setOllamaBaseUrl] = useState('http://localhost:11434');
+  const [ollamaModel, setOllamaModel] = useState(OLLAMA_MODEL);
+  const [ollamaBaseUrl, setOllamaBaseUrl] = useState(OLLAMA_BASE_URL);
   const [ollamaStatus, setOllamaStatus] = useState<'idle' | 'validating' | 'ok' | 'error'>('idle');
+  const [langfuseEnabled, setLangfuseEnabled] = useState(false);
+  const [langfuseHost, setLangfuseHost] = useState(LANGFUSE_BASE_URL);
+  const [langfusePublicKey, setLangfusePublicKey] = useState('');
+  const [langfuseSecretKey, setLangfuseSecretKey] = useState('');
+  const [langfuseStatus, setLangfuseStatus] = useState<'idle' | 'ok' | 'error'>('idle');
   const [saveFolder, setSaveFolder] = useState('jobfit');
   const [maxResumes, setMaxResumes] = useState(2);
   const [maxJobPosts, setMaxJobPostsPerDay] = useState(50);
@@ -40,6 +45,10 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
       setStaleJobDays(cfg.staleJobDays);
       setOllamaModel(cfg.ollamaModel ?? 'qwen3:8b');
       setOllamaBaseUrl(cfg.ollamaBaseUrl ?? 'http://localhost:11434');
+      setLangfuseEnabled(cfg.langfuseEnabled ?? false);
+      setLangfuseHost(cfg.langfuseHost ?? '');
+      setLangfusePublicKey(cfg.langfusePublicKey ?? '');
+      setLangfuseSecretKey(cfg.langfuseSecretKey ?? '');
       if (cfg.subscriptionToken) setTokenStatus('ok');
       if (cfg.apiKey) setKeyStatus('ok');
       if (cfg.mode === 'ollama') setOllamaStatus('ok');
@@ -136,6 +145,23 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
     } catch {
       setOllamaStatus('error');
     }
+  }
+
+  async function saveLangfuse() {
+    const host = langfuseHost.trim();
+    if (!host) { setLangfuseStatus('error'); return; }
+    await saveConfig({
+      langfuseEnabled,
+      langfuseHost: host,
+      langfusePublicKey: langfusePublicKey.trim(),
+      langfuseSecretKey: langfuseSecretKey.trim(),
+    });
+    setLangfuseStatus('ok');
+  }
+
+  async function handleLangfuseToggle(enabled: boolean) {
+    setLangfuseEnabled(enabled);
+    await saveConfig({ langfuseEnabled: enabled });
   }
 
   async function handleSaveGeneral() {
@@ -280,6 +306,57 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
               {ollamaStatus === 'error' && <div style={s.err}>Could not reach Ollama — is it running?</div>}
             </div>
           )}
+        </div>
+
+        {/* ── Observability (Langfuse) ── */}
+        <div style={s.section}>
+          <div style={s.sectionLabel}>Observability (Langfuse)</div>
+
+          <label style={{ ...s.radioRow, marginBottom: 8 }}>
+            <input
+              type="checkbox"
+              checked={langfuseEnabled}
+              onChange={(e) => handleLangfuseToggle(e.target.checked)}
+            />
+            <span style={s.radioLabel}>Enable Langfuse tracing</span>
+          </label>
+          <div style={s.hint}>
+            Traces every LLM call — prompt, response, tokens, latency — to your self-hosted Langfuse instance.
+          </div>
+
+          <div style={s.fieldLabel}>Host URL</div>
+          <input
+            style={s.input}
+            type="text"
+            value={langfuseHost}
+            onChange={(e) => { setLangfuseHost(e.target.value); setLangfuseStatus('idle'); }}
+            placeholder="http://localhost:3001"
+          />
+
+          <div style={s.fieldLabel}>Public Key</div>
+          <input
+            style={s.input}
+            type="text"
+            value={langfusePublicKey}
+            onChange={(e) => { setLangfusePublicKey(e.target.value); setLangfuseStatus('idle'); }}
+            placeholder="pk-lf-..."
+          />
+
+          <div style={s.fieldLabel}>Secret Key</div>
+          <div style={s.row}>
+            <input
+              style={s.input}
+              type="password"
+              value={langfuseSecretKey}
+              onChange={(e) => { setLangfuseSecretKey(e.target.value); setLangfuseStatus('idle'); }}
+              placeholder="sk-lf-..."
+            />
+            <button style={s.saveBtn} onClick={saveLangfuse}>
+              Save
+            </button>
+          </div>
+          {langfuseStatus === 'ok'    && <div style={s.ok}>Settings saved</div>}
+          {langfuseStatus === 'error' && <div style={s.err}>Host URL is required</div>}
         </div>
 
         {/* ── General ── */}

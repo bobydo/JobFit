@@ -1,6 +1,10 @@
 import { ollamaChat } from '../llm/ollama-provider';
-import { fetchJobPage } from '@utils/job-page-fetcher';
+import { fetchJobPage, fetchJobPageViaTab } from '@utils/job-page-fetcher';
+import { savePromptLog } from '@utils/prompt-logger';
+import { traceLlmCall } from '@utils/langfuse-tracer';
+import { LANGFUSE_ENABLED, LANGFUSE_BASE_URL, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY } from '../config';
 import type { Resume, JobEmail, AnalysisResult } from '../popup/types';
+import type { AppConfig } from '../storage/config-store';
 
 interface LLMResponse {
   matchScore: number;
@@ -12,14 +16,19 @@ function buildPrompt(resume: Resume, job: JobEmail): string {
   const resumeText = resume.body.trim().slice(0, 3000);
   const jobText = job.body.trim().slice(0, 3000);
   return [
-    `Resume: ${resume.subject}`,
+    `Resume (${resume.subject}):`,
     resumeText,
     '',
-    `Job: ${job.subject}`,
+    `Job posting (${job.subject}):`,
     jobText,
     '',
+    'Scoring rules:',
+    '- If the job requires a specific language or platform (e.g. Android, Kotlin, Swift) and the resume has NO experience with it, cap the score at 30.',
+    '- Missing a hard requirement (named technology with required years of experience) must reduce the score significantly.',
+    '- Transferable skills (CI/CD, architecture, AI) count but cannot compensate for missing core technology.',
+    '',
     'Reply ONLY with valid JSON — no markdown, no explanation:',
-    '{"matchScore": <0-100>, "matchSummary": "<2-3 sentences>", "skillsGaps": ["<gap1>", "<gap2>"]}',
+    '{"matchScore": <0-100>, "matchSummary": "<2-3 sentences>", "skillsGaps": ["<gap1>", "<gap2>", "<gap3>"]}',
   ].join('\n');
 }
 
@@ -52,19 +61,60 @@ export async function analyzePair(
   resume: Resume,
   job: JobEmail,
   ollamaBaseUrl: string,
-  ollamaModel: string
+  ollamaModel: string,
+  config?: Pick<AppConfig, 'saveFolder' | 'langfuseEnabled' | 'langfuseHost' | 'langfusePublicKey' | 'langfuseSecretKey'>
 ): Promise<AnalysisResult> {
+  const systemMessage = { role: 'system' as const, content: 'You are a professional career advisor. Evaluate how well a candidate\'s resume matches a job posting. Be concise and honest.' };
   const userPrompt = buildPrompt(resume, job);
-  const raw = await ollamaChat({
-    baseUrl: ollamaBaseUrl,
-    model: ollamaModel,
-    messages: [
-      { role: 'system', content: 'You are a professional career advisor. Evaluate how well a candidate\'s resume matches a job posting. Be concise and honest.' },
-      { role: 'user', content: userPrompt },
-    ],
-  });
+  const userMessage = { role: 'user' as const, content: userPrompt };
+  const messages = [systemMessage, userMessage];
 
-  const { matchScore, matchSummary, skillsGaps } = parseResponse(raw);
+  const result = await ollamaChat({ baseUrl: ollamaBaseUrl, model: ollamaModel, messages });
+
+  const { matchScore, matchSummary, skillsGaps } = parseResponse(result.content);
+
+  // Save prompt log as JSON to Downloads/saveFolder/logs/
+  const saveFolder = config?.saveFolder ?? 'jobfit';
+  savePromptLog({
+    timestamp: result.startTime.toISOString(),
+    jobId: job.id,
+    resumeSubject: resume.subject,
+    jobSubject: job.subject,
+    model: ollamaModel,
+    messages,
+    rawResponse: result.content,
+    parsedResult: { matchScore, matchSummary, skillsGaps },
+    promptTokens: result.promptTokens,
+    completionTokens: result.completionTokens,
+    latencyMs: result.latencyMs,
+  }, saveFolder);
+
+  // Send trace to Langfuse if enabled (build-time flag AND runtime toggle)
+  const lfHost   = config?.langfuseHost       || LANGFUSE_BASE_URL;
+  const lfPubKey = config?.langfusePublicKey  || LANGFUSE_PUBLIC_KEY;
+  const lfSecKey = config?.langfuseSecretKey  || LANGFUSE_SECRET_KEY;
+
+  if (LANGFUSE_ENABLED && (config?.langfuseEnabled ?? true) && lfPubKey && lfSecKey) {
+    void traceLlmCall(
+      { host: lfHost, publicKey: lfPubKey, secretKey: lfSecKey },
+      {
+        traceId: crypto.randomUUID(),
+        name: 'resume-job-match',
+        model: ollamaModel,
+        messages,
+        output: result.content,
+        startTime: result.startTime,
+        endTime: result.endTime,
+        promptTokens: result.promptTokens,
+        completionTokens: result.completionTokens,
+        metadata: {
+          jobId: job.id,
+          jobSubject: job.subject,
+          resumeSubject: resume.subject,
+        },
+      }
+    );
+  }
 
   return {
     jobEmailId: job.id,
@@ -85,10 +135,12 @@ export async function analyzeUrl(
   url: string,
   emailId: string,
   ollamaBaseUrl: string,
-  ollamaModel: string
+  ollamaModel: string,
+  config?: Pick<AppConfig, 'saveFolder' | 'langfuseEnabled' | 'langfuseHost' | 'langfusePublicKey' | 'langfuseSecretKey'>
 ): Promise<AnalysisResult | null> {
-  const page = await fetchJobPage(url);
+  let page = await fetchJobPage(url).catch(() => null);
+  if (!page) page = await fetchJobPageViaTab(url).catch(() => null);
   if (!page) return null;
   const fakeJob: JobEmail = { id: emailId, subject: page.title, body: page.body, urls: [url], date: new Date() };
-  return analyzePair(resume, fakeJob, ollamaBaseUrl, ollamaModel);
+  return analyzePair(resume, fakeJob, ollamaBaseUrl, ollamaModel, config);
 }

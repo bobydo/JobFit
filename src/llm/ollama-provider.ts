@@ -9,15 +9,26 @@ export interface OllamaChatOptions {
   messages: OllamaMessage[];
 }
 
-export async function ollamaChat(options: OllamaChatOptions): Promise<string> {
+export interface OllamaChatResult {
+  content: string;
+  promptTokens: number;
+  completionTokens: number;
+  latencyMs: number;
+  startTime: Date;
+  endTime: Date;
+}
+
+export async function ollamaChat(options: OllamaChatOptions): Promise<OllamaChatResult> {
   const { baseUrl, model, messages } = options;
   const url = `${baseUrl.replace(/\/$/, '')}/api/chat`;
 
+  const startTime = new Date();
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model, messages, stream: false }),
   });
+  const endTime = new Date();
 
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
@@ -27,7 +38,15 @@ export async function ollamaChat(options: OllamaChatOptions): Promise<string> {
   const json = await res.json();
   const content: string = json?.message?.content ?? '';
   if (!content) throw new Error('Ollama returned empty content');
-  return content;
+
+  return {
+    content,
+    promptTokens: json?.prompt_eval_count ?? 0,
+    completionTokens: json?.eval_count ?? 0,
+    latencyMs: endTime.getTime() - startTime.getTime(),
+    startTime,
+    endTime,
+  };
 }
 
 export async function ollamaHealthCheck(baseUrl: string): Promise<boolean> {

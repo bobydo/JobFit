@@ -1,0 +1,76 @@
+Shenyi Bao
+Edmonton, AB • baoshenyi@gmail.com • LinkedIn • GitHub • PH 7808938686
+Summary
+Senior System Analyst / SCADA & Cloud Integration Developer with extensive experience designing, developing, and supporting enterprise SCADA solutions and cloud-based integrations for pipeline operations. Specialized in AVEVA OASyS, HMI display development, and building high-availability applications using C#/.NET, Python, and low-code/no-code tools.
+Proficient in ETL and data pipelines, translating operational requirements into maintainable solutions, including event-driven Pub/Sub architectures, SQL-based analytics, and Azure cloud integrations. Experienced in integrating real-time telemetry, operational data, and AI/RAG pipelines to support analytics and reporting for mission-critical systems.
+Strong background in DevOps, automation, and testing, including CI/CD pipelines, regression and integration testing frameworks, and production support. Collaborative Agile team members focused on automation, operational visibility, and enterprise-grade solutions that ensure reliability, scalability, and maintainability across industrial and cloud systems.
+Tech Skills
+Languages & Frameworks: C#, .NET, ASP.NET (MVC, Web API), Python, LINQ, Multithreading, React, Angular, AngularJS, Vue, JavaScript, TypeScript
+DevOps & Cloud: Microsoft Azure (App Services, Functions, Dataverse, Storage, SQL Database, Azure DevOps (CI/CD pipelines, environments, Git, Microsoft Azure Fundamentals
+SCADA & Tools: AVEVA OASyS (HMI composites/displays), HMI XE, DNA PowerShell, ADE, SQL, NMC, AVEVA Simulation
+Energy & Analytics Systems: Energy operations systems, portfolio-performance reporting, regulatory and operational data support
+Data & ETL Engineering: SQL Server, SSIS, SSRS, Power BI, Python ETL pipelines, Pandas, data integration for AI/analytics, BI and analytics modeling (dimensional and tabular), Power BI dataset/report development
+Data & Reporting: SQL Server, SSIS, Power BI datasets and reports, dimensional and tabular models, enterprise analytics
+RAG / LLM / AI Agent: Ingestion (AI friend content, wiki, PDF, etc.), embeddings/chunking, vector databases, LangChain, Structured Prompting, Ollama LLM, LangGraph
+Experience
+Senior Scada Developer — Enbridge Pipelines
+Nov 2021 – Dec 2025 Edmonton, AB
+● Developed and enhanced enterprise SCADA applications for AVEVA OASyS using C#/.NET, applying clean architecture, dependency injection, and SOLID principles to support high-availability pipeline control systems. Designed and tested HMI composites, operational displays, and regression validation screens used by control room operators. Implemented Pub/Sub event-driven updates within composites to enable real-time value refresh.
+● Built automated testing frameworks using Python, Robot Framework, and BLT, expanding regression and integration testing coverage and improving reliability of SCADA deployments. Designed data-driven and keyword-driven test suites for system and performance validation.
+● Supported SCADA integration testing by using data simulators to emulate Modbus telemetry streams and assisting with RabbitMQ messaging workflows used for operational data exchange in pipeline monitoring systems.
+● Optimized SQL queries, indexes, and stored procedures through execution plan analysis and refactoring; implemented coaching and asynchronous processing to improve responsiveness and reduce production latency for SCADA-related services.
+● Provided production support and configuration for SCADA environments, performing defect triage, root-cause analysis, and coordinated fixes across engineering and operations teams to maintain system reliability and uptime.
+● Integrated operational SCADA data with SQL-based reporting and analytics pipelines, improving reporting accuracy and accelerating operational decision-making for pipeline monitoring.
+● Collaborated in Agile/Scrum teams, working with engineers, analysts, and control room stakeholders to translate operational requirements into maintainable solutions; maintained technical documentation, test artifacts, and Jira tracking across the development lifecycle.
+● Garden Suite Chatbot Project— Personal project reconstructing the RAG/agentic architecture from an internal Enbridge AI assistant; built to publicly demonstrate skills that couldn't be shared from github.com/bobydo/garden-suite-chatbot | LangGraph · LangChain · Qdrant · Ollama · BM25+Vector · FastAPISenior
+Senior System Analyst (Full-Stack - QA) Michigan Conference of Teamsters Welfare Fund
+Sep 2020 – Dec 2021 Detroit, MI
+Led requirements gathering and data migration from Basys to internally developed enterprise applications, ensuring continuity of financial and eligibility operations.
+Implemented bidirectional data synchronization between multiple data source systems and an internal application using Azure Functions, Power Automate, Dataverse and Azure SQL etc., with a frontend built in React (Next.js, Material UI); designed deterministic conflict resolution, optimistic concurrency control, retry/dead-letter handling, and loop-prevention patterns used in enterprise integrations. Public demo illustrating the architecture: github.com/bobydo/Azure-2ways-sync.
+Architected and supported RESTful APIs and distributed .NET services to integrate internal applications, reporting systems, and analytics workflows, delivering enterprise reporting solutions using SQL, SSIS, and Power BI for operational and executive oversight.
+Strengthened ETL validation and data quality controls, reducing production defects by 30 percent, while performing advanced troubleshooting, root-cause analysis, and performance optimization for mission-critical systems.
+
+Senior Application Developer (Full-Stack - QA) Innovation and Advanced Education
+Mar 2019 – Aug 2020 Edmonton, AB
+Shipped LPS Dashboard and Transfer Alberta Search using C#, Entity Framework, ASP.NET MVC, AngularJS, SSIS, and SSRS, supporting high-visibility public and institutional users.
+Designed and implemented a hybrid cloud analytics architecture: maintained the transactional student credit system on-prem to protect highly sensitive data such as SIN, date of birth, and address; implemented a daily ETL process to sanitize and remove personal data; securely transferred curated datasets via site-to-site VPN to an Azure-based data warehouse; enabled role-based, institution-level reporting through Power BI Service with Azure AD integration.
+Selected Power BI Service for its frequent feature updates, earlier access to advanced analytics and AI capabilities, tighter Azure integration, and flexibility for university technical teams to build customized analytics on governed cloud datasets.
+Built and maintained shared RESTful ASP.NET Web APIs using clean architecture and dependency injection, implemented Azure DevOps CI/CD pipelines with gated approvals and artifact promotion, and automated UI and API testing using Selenium, Cypress, Katalon, and SpecFlow to ensure stable multi-environment releases.
+
+Senior Application Developer (Full-Stack - QA) Economic Development and Trade
+May 2015 – Mar 2019 Edmonton, AB
+Led requirements gathering and technical design for enterprise web applications, delivering ASP.NET MVC solutions using C#, Entity Framework, Angular and Vue front ends, and service-oriented integrations via REST APIs.
+Architected and optimized application performance, improving front-page load times by 7.8x through strategic caching, compression, query optimization, and asset bundling.
+Designed and implemented robust service layers and data access patterns using clean architecture principles, ensuring maintainability, testability, and scalable integration across distributed systems.
+Established strong engineering practices by maintaining over 80 percent unit test coverage, driving BDD and TDD adoption, implementing Selenium-based UI automation, and managing TFS workflows with structured peer reviews.
+Built advanced interactive data visualizations and geospatial dashboards (AmCharts, Highcharts, Mapbox) to support program analysis and stakeholder decision-making.
+
+Lead System Analyst and QA Automation Lead — Alberta Energy
+Nov 2007 – May 2015 Edmonton, AB
+Led end-to-end system delivery across requirements definition, technical design, complex C# development, and unit, system, and UAT validation within enterprise .NET environments (C#, SQL Server, Crystal Reports, DCOM).
+Architected and implemented a reusable TestComplete automation framework, formalizing structured acceptance testing practices and improving release confidence across multiple projects.
+Authored and maintained disaster recovery, compliance, and audit documentation; partnered with stakeholders and auditors to ensure regulatory alignment and operational readiness.
+Directed source control and integration workflows using Git-TFS, enforcing branch governance, peer review standards, and disciplined release management to maintain high code quality.
+Integrated operational datasets into structured SQL reporting workflows, improving data consistency and availability by 25 percent to support analytics and executive decision-making.
+Mentored development and QA team members, establishing coding standards, testing frameworks, and quality governance practices to enhance long-term maintainability.
+
+Web Developer — Sequiter Software Inc.
+Jul 2003 – Oct 2007 Edmonton, AB
+Built N‑tier intranet apps on SQL Server 2000-2005 with ASP.NET, VB.NET and C# AJAX-XML-XSLT.
+Optimized stored procedures and DB design; improved end‑to‑end performance.
+Implemented a multithreaded Windows service monitor achieving 100 uptime in production.
+Streamlined daily ops and support with diagnostics tooling and documentation.
+Collaborated with stakeholders to prioritize fixes and enhancements.
+Used legacy Subversion (SVN)–based version-control system to manage source code, track changes, and coordinate updates across multiple developers, ensuring code integrity and consistent builds in a multi-application environment.
+Software Developer → Team Lead — Shengli Oil Field (SINOPEC), China
+Sep 1990 – May 2003 China
+Developed a VC++ 6.0 graphics platform widely adopted across the organization (¥2M first‑year revenue).
+Built an intranet real‑time monitoring system (“Coordinate Electricity”) used in operations.
+Assigned to Sudan as a software consultant; provided onsite solutions and training.
+Earlier role as Unix System Administrator supporting engineering teams.
+Promoted to team leader; ran delivery plans and mentored junior developers.
+Education
+Shandong University — B.Sc., Computer Science
+NAIT (Northern Alberta Institute of Technology) Certificate, Business Analyst
+IBM RAG and Agentic AI: Build Next-Gen AI Assistants Professional Certificate
+Microsoft Certified: Azure Fundamentals

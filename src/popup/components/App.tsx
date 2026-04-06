@@ -83,7 +83,7 @@ export default function App() {
           try {
             let result: AnalysisResult | null = null;
             try {
-              result = await analyzeUrl(resume, url, job.id, baseUrl, model);
+              result = await analyzeUrl(resume, url, job.id, baseUrl, model, cfg);
             } catch (err) {
               console.warn('[JobFit] URL fetch failed:', url, err);
             }
@@ -91,7 +91,7 @@ export default function App() {
               const jobIdMatch = url.match(/\/(\d+)\//);
               const subject = jobIdMatch ? `${job.subject} #${jobIdMatch[1]}` : job.subject;
               const fakeJob: JobEmail = { id: job.id, subject, body: job.body, urls: [url], date: job.date };
-              result = await analyzePair(resume, fakeJob, baseUrl, model);
+              result = await analyzePair(resume, fakeJob, baseUrl, model, cfg);
             }
             const key = `${job.id}::${url}::${resume.id}`;
             resultMap.set(key, result);
