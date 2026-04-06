@@ -19,25 +19,39 @@ export interface LlmTrace {
   metadata?: Record<string, string>;
 }
 
-export async function traceLlmCall(config: LangfuseConfig, trace: LlmTrace): Promise<void> {
+export async function traceLlmCall(
+  config: LangfuseConfig,
+  trace: LlmTrace,
+): Promise<{ ok: boolean; status: number; body: string }> {
   try {
     const auth = btoa(`${config.publicKey}:${config.secretKey}`);
     const host = config.host.replace(/\/$/, '');
 
-    await fetch(`${host}/api/public/ingestion`, {
+    const res = await fetch(`${host}/api/public/ingestion`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Basic ${auth}`,
+        Authorization: `Basic ${auth}`,
       },
       body: JSON.stringify({
         batch: [
           {
             id: crypto.randomUUID(),
-            type: 'generation-create',
+            type: 'trace-create',
             timestamp: trace.startTime.toISOString(),
             body: {
               id: trace.traceId,
+              name: trace.name,
+              metadata: trace.metadata ?? {},
+              timestamp: trace.startTime.toISOString(),
+            },
+          },
+          {
+            id: crypto.randomUUID(),
+            type: 'generation-create',
+            timestamp: trace.startTime.toISOString(),
+            body: {
+              id: crypto.randomUUID(),
               traceId: trace.traceId,
               name: trace.name,
               model: trace.model,
@@ -56,7 +70,14 @@ export async function traceLlmCall(config: LangfuseConfig, trace: LlmTrace): Pro
         ],
       }),
     });
+
+    const body = await res.text();
+    if (!res.ok) {
+      console.warn('[JobFit] langfuse-tracer: non-OK response', res.status, body);
+    }
+    return { ok: res.ok, status: res.status, body };
   } catch (e) {
     console.warn('[JobFit] langfuse-tracer: failed to send trace', e);
+    return { ok: false, status: 0, body: String(e) };
   }
 }

@@ -26,3 +26,6 @@ export const LANGFUSE_BASE_URL = 'http://localhost:3001';
 export const LANGFUSE_SECRET_KEY="sk-lf-a8393b5d-8362-4795-b531-3d263b00a8ae"
 export const LANGFUSE_PUBLIC_KEY="pk-lf-d9005f8b-0804-40db-aa61-a2a3911d17d5"
 
+// ── Dev / test ─────────────────────────────────────────────────────────────
+export const TEST_LOG_DIR     = 'src/logs';
+

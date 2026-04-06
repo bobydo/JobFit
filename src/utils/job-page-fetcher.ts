@@ -3,11 +3,27 @@ export interface JobPageData {
   body: string;
 }
 
+// Sites that require user authentication — skip direct (cookie-less) fetch.
+// The caller will use fetchJobPageViaTab which runs in a real browser tab with the user's session.
+const AUTH_REQUIRED_DOMAINS = ['linkedin.com', 'indeed.com', 'glassdoor.com'];
+
+function requiresAuthTab(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return AUTH_REQUIRED_DOMAINS.some((d) => hostname === d || hostname.endsWith(`.${d}`));
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Fetch a URL and check for Schema.org JobPosting structured data.
  * Returns job content if the page is a real job posting, null otherwise.
+ * Returns null for auth-required domains (e.g. LinkedIn) so the caller falls
+ * through to fetchJobPageViaTab which uses the user's real browser session.
  */
 export async function fetchJobPage(url: string): Promise<JobPageData | null> {
+  if (requiresAuthTab(url)) return null;
   const res = await fetch(url);
   const html = await res.text();
   const doc = new DOMParser().parseFromString(html, 'text/html');

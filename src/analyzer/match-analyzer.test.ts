@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import type { Resume, JobEmail } from '../popup/types';
+import { writeTestLog } from '@utils/test-logger';
+import { compareToBaseline } from '@utils/result-comparator';
 
 // Mock savePromptLog — intercepts before chrome.downloads is called, captures log data
 vi.mock('@utils/prompt-logger', () => ({ savePromptLog: vi.fn() }));
@@ -11,8 +13,7 @@ vi.mock('@utils/prompt-logger', () => ({ savePromptLog: vi.fn() }));
 import { analyzePair } from './match-analyzer';
 import { savePromptLog } from '@utils/prompt-logger';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const SAMPLES  = resolve(__dirname, '../../samples/TestResume');
+const SAMPLES = resolve(dirname(fileURLToPath(import.meta.url)), '../../samples/TestResume');
 
 const RESUME: Resume = {
   id: 'test-resume-1',
@@ -75,16 +76,29 @@ describe('match-analyzer — integration with Ollama', () => {
     expect(log.messages[1].role).toBe('user');
     expect(log.messages[1].content).toContain('Full Stack Developer'); // resume subject in prompt
     expect(log.messages[1].content).toContain('Ford');                 // job text in prompt
+    expect(log.messages[1].content).toContain('LangGraph');            // late in resume — proves 6000 char limit works
     expect(log.promptTokens).toBeGreaterThan(0);
     expect(log.completionTokens).toBeGreaterThan(0);
     expect(log.rawResponse.length).toBeGreaterThan(0);
     expect(log.parsedResult.matchScore).toBe(result.matchScore);
 
-    // ── write real JSON log to samples/TestResume/logs/ for inspection ───
-    const logsDir = resolve(SAMPLES, 'logs');
-    mkdirSync(logsDir, { recursive: true });
-    const logPath = resolve(logsDir, 'test-prompt-log.json');
-    writeFileSync(logPath, JSON.stringify(log, null, 2), 'utf-8');
+    // ── baseline similarity check ─────────────────────────────────────────
+    const baseline = JSON.parse(readFileSync(resolve(SAMPLES, 'LLMresult.json'), 'utf-8'));
+    const report = compareToBaseline(baseline, {
+      matchScore: result.matchScore,
+      skillsGaps: result.skillsGaps,
+    });
+
+    console.log('\n── Similarity vs baseline ──');
+    console.log('Score delta :', report.scoreDelta, '(baseline:', baseline.matchScore, ')');
+    console.log('Gap overlap :', (report.gapOverlap * 100).toFixed(0) + '%');
+    console.log('Missing gaps:', report.missingGaps);
+
+    expect(Math.abs(report.scoreDelta)).toBeLessThan(20);  // score within ±20 of baseline
+    expect(report.gapOverlap).toBeGreaterThan(0.5);        // ≥50% of key gaps covered
+
+    // ── write real JSON log to src/logs/ for inspection ──────────────────
+    const logPath = writeTestLog(import.meta.url, log);
     console.log('\nLog written to:', logPath);
   }, 120_000); // 2-min timeout — LLM cold start can be slow
 });

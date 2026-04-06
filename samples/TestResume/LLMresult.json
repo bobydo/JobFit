@@ -1,0 +1,12 @@
+{
+  "_note": "Trusted baseline from local qwen3 — update intentionally when prompt improves",
+  "matchScore": 45,
+  "matchSummary": "Strong AI/LLM and backend background but lacks direct alignment with Android development and voice/audio integration requirements for the EV-focused role.",
+  "skillsGaps": [
+    "Android development with Kotlin — no mention on resume, 5+ years required",
+    "Android audio subsystem (focus, routing, media) — no experience listed, 2+ years required",
+    "Voice & audio integration — missing speech-to-text, NLP, real-time audio systems",
+    "Embedded systems / edge ML — AI/LLM experience present but no TensorFlow Lite or on-device inference",
+    "Mobile-first design — no mobile app development or cross-platform frameworks"
+  ]
+}

@@ -13,8 +13,8 @@ interface LLMResponse {
 }
 
 function buildPrompt(resume: Resume, job: JobEmail): string {
-  const resumeText = resume.body.trim().slice(0, 3000);
-  const jobText = job.body.trim().slice(0, 3000);
+  const resumeText = resume.body.trim().slice(0, 6000);
+  const jobText = job.body.trim().slice(0, 4000);
   return [
     `Resume (${resume.subject}):`,
     resumeText,
@@ -23,12 +23,15 @@ function buildPrompt(resume: Resume, job: JobEmail): string {
     jobText,
     '',
     'Scoring rules:',
-    '- If the job requires a specific language or platform (e.g. Android, Kotlin, Swift) and the resume has NO experience with it, cap the score at 30.',
-    '- Missing a hard requirement (named technology with required years of experience) must reduce the score significantly.',
-    '- Transferable skills (CI/CD, architecture, AI) count but cannot compensate for missing core technology.',
+    '- Score 0–100 reflecting overall fit.',
+    '- Hard missing requirements (named technology + required years) reduce the score significantly.',
+    '- Genuine transferable skills (architecture, AI/LLM, CI/CD, system integration) count toward the score.',
+    '- Do NOT apply a hard cap — balance gaps against real strengths.',
+    '',
+    'skillsGaps: list the specific skills or experiences THIS candidate is missing for THIS role, framed as actionable items (e.g. "Learn Kotlin and Android SDK — 5+ years required, no Android experience on resume"). Be specific to the candidate\'s background, not generic job requirements.',
     '',
     'Reply ONLY with valid JSON — no markdown, no explanation:',
-    '{"matchScore": <0-100>, "matchSummary": "<2-3 sentences>", "skillsGaps": ["<gap1>", "<gap2>", "<gap3>"]}',
+    '{"matchScore": <0-100>, "matchSummary": "<5-6 sentences>", "skillsGaps": ["<gap1>", "<gap2>", "<gap3>", "<gap4>", "<gap5>", "<gap6>"]}',
   ].join('\n');
 }
 
@@ -80,6 +83,7 @@ export async function analyzePair(
     jobId: job.id,
     resumeSubject: resume.subject,
     jobSubject: job.subject,
+    jobBody: job.body,
     model: ollamaModel,
     messages,
     rawResponse: result.content,
@@ -95,7 +99,7 @@ export async function analyzePair(
   const lfSecKey = config?.langfuseSecretKey  || LANGFUSE_SECRET_KEY;
 
   if (LANGFUSE_ENABLED && (config?.langfuseEnabled ?? true) && lfPubKey && lfSecKey) {
-    void traceLlmCall(
+    await traceLlmCall(
       { host: lfHost, publicKey: lfPubKey, secretKey: lfSecKey },
       {
         traceId: crypto.randomUUID(),

@@ -26,7 +26,7 @@ export async function ollamaChat(options: OllamaChatOptions): Promise<OllamaChat
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model, messages, stream: false }),
+    body: JSON.stringify({ model, messages, stream: false, options: { temperature: 0 } }),
   });
   const endTime = new Date();
 

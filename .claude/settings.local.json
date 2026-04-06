@@ -12,7 +12,8 @@
       "Bash(npx vitest:*)",
       "Bash(xargs -I {} bash -c \"grep -l 'groq\\\\|anthropic\\\\|openai\\\\|provider' '{}' 2>/dev/null\")",
       "Bash(xargs wc:*)",
-      "Bash(ls d:/JobFit/*.md d:/JobFit/*.MD)"
+      "Bash(ls d:/JobFit/*.md d:/JobFit/*.MD)",
+      "Read(//d/JobFit/src/**)"
     ],
     "additionalDirectories": [
       "C:\\Users\\baosh\\.claude\\plans"

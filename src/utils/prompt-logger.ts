@@ -5,6 +5,7 @@ export interface PromptLog {
   jobId: string;
   resumeSubject: string;
   jobSubject: string;
+  jobBody: string;
   model: string;
   messages: OllamaMessage[];
   rawResponse: string;
