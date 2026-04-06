@@ -145,6 +145,6 @@ export async function analyzeUrl(
   let page = await fetchJobPage(url).catch(() => null);
   if (!page) page = await fetchJobPageViaTab(url).catch(() => null);
   if (!page) return null;
-  const fakeJob: JobEmail = { id: emailId, subject: page.title, body: page.body, urls: [url], date: new Date() };
+  const fakeJob: JobEmail = { id: emailId, subject: page.title, body: page.body, urls: [url], date: Date.now() };
   return analyzePair(resume, fakeJob, ollamaBaseUrl, ollamaModel, config);
 }

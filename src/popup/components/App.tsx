@@ -9,6 +9,7 @@ import JobPostsTab from './JobPostsTab';
 import ResultsTab from './ResultsTab';
 import SettingsPanel from './SettingsPanel';
 import type { Resume, JobEmail, AnalysisResult } from '../types';
+import { ANALYSIS_POPUP_WIDTH, ANALYSIS_POPUP_HEIGHT, ANALYSIS_POPUP_MARGIN } from '../../config';
 
 type Tab = 'resumes' | 'jobposts' | 'results';
 
@@ -42,7 +43,9 @@ export default function App() {
     getConfig().then((cfg) => setMaxResumes(cfg.maxResumes));
     getAnalysisResults().then(setResultsData);
 
-    // Standalone window: load pending jobs+resumes from storage and start immediately
+    // Standalone window (opened by handleAnalyze with ?analyze param):
+    // reads pendingAnalysis from storage, switches to Results tab, starts analysis.
+    // setActiveTab('results') here is what makes the Results tab appear on open.
     if (isStandalone) {
       chrome.storage.local.get('pendingAnalysis', (stored) => {
         if (!stored.pendingAnalysis) return;
@@ -70,6 +73,9 @@ export default function App() {
     const existing = await getAnalysisResults();
     const resultMap = new Map(existing.map((r) => [`${r.jobEmailId}::${r.jobUrl}::${r.resumeId}`, r]));
 
+    // Progress counts URLs (each URL = one job posting page to analyze).
+    // "1/6 jobs" means 1 URL processed out of 6 total across all selected emails.
+    // DO NOT change this to count job emails — a single email can have 6 URLs.
     const totalUrls = selectedJobs.reduce((sum, j) => sum + j.urls.length, 0);
     let doneUrls = 0;
     setAnalyzeProgress({ done: 0, total: totalUrls });
@@ -77,6 +83,7 @@ export default function App() {
     const errors: string[] = [];
     for (const job of selectedJobs) {
       for (const url of job.urls) {
+        // Increment per URL so the counter advances as each posting is processed
         doneUrls++;
         setAnalyzeProgress({ done: doneUrls, total: totalUrls });
         for (const resume of activeResumes) {
@@ -95,6 +102,8 @@ export default function App() {
             }
             const key = `${job.id}::${url}::${resume.id}`;
             resultMap.set(key, result);
+            // Save + update UI after EVERY resume-URL pair so results appear one-by-one.
+            // DO NOT move this outside the loop — batching kills the live update behavior.
             const merged = Array.from(resultMap.values());
             await saveAnalysisResults(merged);
             setResultsData([...merged]);
@@ -122,12 +131,29 @@ export default function App() {
       return;
     }
 
-    // Save jobs + full resume objects, then reopen as standalone window that won't close on blur
+    // ⚠️ HOW "ANALYZE SELECTED" JUMPS TO RESULTS TAB — DO NOT BREAK THIS FLOW:
+    //
+    // The browser popup (type:'popup' in manifest) closes itself when it loses focus,
+    // which would kill a long-running analysis mid-way. To prevent that, we:
+    //   1. Save selected jobs + resumes to storage under 'pendingAnalysis'
+    //   2. Open a NEW standalone window (type:'popup' via chrome.windows.create)
+    //      with '?analyze' in the URL — standalone windows stay open on blur
+    //   3. Close this popup (window.close())
+    //   4. The new window's useEffect detects isStandalone (?analyze param),
+    //      reads 'pendingAnalysis' from storage, calls setActiveTab('results'),
+    //      then starts runAnalysis — this is what switches to the Results tab.
+    //
+    // If you remove window.close(), move the logic inline, or skip the ?analyze
+    // param, the Results tab switch and/or the stay-open behavior will break.
     await new Promise<void>((resolve) =>
       chrome.storage.local.set({ pendingAnalysis: { selectedJobs, resumes: activeResumes } }, resolve)
     );
     const popupUrl = chrome.runtime.getURL('src/popup/popup.html') + '?analyze';
-    chrome.windows.create({ url: popupUrl, type: 'popup', width: 440, height: 620 });
+    // Position on the RIGHT edge so Chrome's download panel (appears on the left of the browser)
+    // doesn't overlap the analysis window.
+    const left = window.screen.availWidth - ANALYSIS_POPUP_WIDTH - ANALYSIS_POPUP_MARGIN;
+    const top = Math.round((window.screen.availHeight - ANALYSIS_POPUP_HEIGHT) / 2);
+    chrome.windows.create({ url: popupUrl, type: 'popup', width: ANALYSIS_POPUP_WIDTH, height: ANALYSIS_POPUP_HEIGHT, left, top });
     window.close();
   }
 

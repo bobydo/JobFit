@@ -90,8 +90,8 @@ export async function getMessage(id: string): Promise<GmailMessage> {
 }
 
 /** Returns the received date of a message from internalDate (Unix ms). */
-export function getInternalDate(message: GmailMessage): Date {
-  return message.internalDate ? new Date(Number(message.internalDate)) : new Date(0);
+export function getInternalDate(message: GmailMessage): number {
+  return message.internalDate ? Number(message.internalDate) : 0;
 }
 
 /** Extracts the Subject header value from a message. */

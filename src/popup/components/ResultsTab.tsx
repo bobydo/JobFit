@@ -11,12 +11,13 @@ interface Props {
 function downloadResults(results: AnalysisResult[]) {
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
 
-  // Group by job
+  // Group by URL (each URL = one job posting), same logic as the live UI
   const byJob = new Map<string, AnalysisResult[]>();
   for (const r of results) {
-    const group = byJob.get(r.jobEmailId) ?? [];
+    const key = r.jobUrl || r.jobEmailId;
+    const group = byJob.get(key) ?? [];
     group.push(r);
-    byJob.set(r.jobEmailId, group);
+    byJob.set(key, group);
   }
 
   const scoreColor = (s: number) => s >= 70 ? '#2e7d32' : s >= 40 ? '#e65100' : '#c62828';
@@ -109,6 +110,7 @@ export default function ResultsTab({ results, isAnalyzing, progress, error }: Pr
     <div>
       <div style={s.toolbar}>
         <button style={s.downloadBtn} onClick={() => downloadResults(results)}>↓ Download Report</button>
+        <button style={s.downloadBtn} onClick={() => chrome.downloads.showDefaultFolder()}>📁 Log and Download folder</button>
       </div>
       {isAnalyzing && (
         <div style={s.analyzingBanner}>

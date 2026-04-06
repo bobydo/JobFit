@@ -387,7 +387,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
             onChange={(e) => setStaleJobDays(Number(e.target.value))}
           />
 
-          <div style={s.fieldLabel}>Download folder</div>
+          <div style={s.fieldLabel}>Log and Download folder</div>
           <div style={s.hint}>Results saved to Downloads/<span style={{ fontStyle: 'italic' }}>{saveFolder || 'jobfit'}</span>/</div>
           <input style={s.input} type="text" value={saveFolder} onChange={(e) => setSaveFolder(e.target.value)} />
 

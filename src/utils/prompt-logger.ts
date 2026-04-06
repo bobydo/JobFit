@@ -19,18 +19,9 @@ export interface PromptLog {
   latencyMs: number;
 }
 
-export function savePromptLog(log: PromptLog, saveFolder: string): void {
-  try {
-    const json = JSON.stringify(log, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const ts = log.timestamp.replace(/[:.]/g, '-');
-    const safeJob = log.jobId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 16);
-    const filename = `${saveFolder}/logs/${ts}-${safeJob}.json`;
-    chrome.downloads.download({ url, filename, saveAs: false }, () => {
-      URL.revokeObjectURL(url);
-    });
-  } catch (e) {
-    console.warn('[JobFit] prompt-logger: failed to save log', e);
-  }
+// Log saving is intentionally suppressed — auto-downloading files during analysis
+// spams Chrome's download notification and covers the Results UI.
+// To re-enable, restore the chrome.downloads.download call here.
+export function savePromptLog(_log: PromptLog, _saveFolder: string): void {
+  // no-op
 }

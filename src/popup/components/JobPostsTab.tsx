@@ -44,8 +44,7 @@ export default function JobPostsTab({ cachedData, onDataLoaded, onAnalyze, isAna
     try {
       const stored = await getCached<JobEmail[]>('jobposts');
       if (stored) {
-        const restored = stored.map((e) => ({ ...e, date: new Date(e.date) }));
-        apply(restored);
+        apply(stored);
         return;
       }
       const { maxJobPosts } = await getConfig();
@@ -167,12 +166,10 @@ export default function JobPostsTab({ cachedData, onDataLoaded, onAnalyze, isAna
                     {email.subject}
                   </span>
                 </label>
-                {isDone
-                  ? <span style={s.doneBadge}>✓ Done</span>
-                  : <span style={{ ...s.dateBadge, ...(new Date(email.date).toDateString() === new Date().toDateString() ? s.dateBadgeToday : {}) }}>
-                      {formatDate(new Date(email.date))}
-                    </span>
-                }
+                {isDone && <span style={s.doneBadge}>✓ Done</span>}
+                <span style={{ ...s.dateBadge, ...(new Date(email.date).toDateString() === new Date().toDateString() ? s.dateBadgeToday : {}) }}>
+                  {formatDate(new Date(email.date))}
+                </span>
                 <button
                   style={s.expandBtn}
                   onClick={() => setExpandedId(isExpanded ? null : email.id)}

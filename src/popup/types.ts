@@ -9,7 +9,7 @@ export interface JobEmail {
   subject: string;
   body: string;
   urls: string[];
-  date: Date;
+  date: number;
 }
 
 export interface AnalysisResult {
