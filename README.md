@@ -20,6 +20,22 @@ start local docker
 
 In `src/config.ts` set `LANGFUSE_ENABLED = true`, rebuild, then paste the keys into the extension under **Settings → Observability**.
 
-Prompt logs (resume + job + generated prompt + LLM response) are always saved to `Downloads/jobfit/logs/` as JSON regardless of Langfuse.
+Prompt logs (resume + job + generated prompt + LLM response) are sent to Langfuse when enabled. Auto-download to disk is suppressed to avoid notification spam; use the "📁 Log and Download folder" button in the Results tab to open the downloads folder.
 
 - Run test.ts => npx vitest run --reporter=verbose
+
+## Fix log
+
+| # | Fix | Files |
+|---|-----|-------|
+| 1 | Done jobs showed no date — both `✓ Done` badge and date now render together | `JobPostsTab.tsx` |
+| 2 | `JobEmail.date` as `Date` caused "Invalid Date" after Chrome storage round-trip — changed to Unix ms `number` | `types.ts`, `gmail-client.ts`, `JobPostsTab.tsx`, `match-analyzer.ts` |
+| 3 | Results appeared all-at-once instead of one-by-one — `setResultsData` restored inside innermost loop | `App.tsx` |
+| 4 | Progress banner showed `0/1` instead of `1/6` — tracks URL count, increments inside URL loop | `App.tsx` |
+| 5 | "Analyze Selected" → Results tab jump kept breaking — added comment explaining standalone window flow | `App.tsx` |
+| 6 | Standalone window overlapped Chrome download panel — opens on right edge of screen; size/margin in config | `App.tsx`, `config.ts` |
+| 7 | Per-pair `chrome.downloads.download()` spammed notification bubbles over Results UI — `savePromptLog` suppressed (no-op) | `prompt-logger.ts`, `App.tsx` |
+| 8 | "📁 Log and Download folder" button added to Results tab toolbar | `ResultsTab.tsx` |
+| 9 | Download report grouped by `jobEmailId` so only first job URL appeared — fixed to group by `jobUrl \|\| jobEmailId` | `ResultsTab.tsx` |
+| 10 | Langfuse tracer missing `type: 'trace-create'` in ingestion batch body | `langfuse-tracer.ts` |
+| 11 | Prompt logs note in README was stale (logs are now suppressed, not auto-downloaded) | `README.md` |
