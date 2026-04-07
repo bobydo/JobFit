@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { labelExists } from '@gmail/gmail-client';
 import { clearCached, getAnalysisResults, saveAnalysisResults, clearAnalysisResults } from '@storage/cache-store';
-import { getConfig } from '@storage/config-store';
+import { getConfig, saveConfig } from '@storage/config-store';
 import { analyzeUrl, analyzePair } from '@analyzer/match-analyzer';
 import OnboardingScreen from './OnboardingScreen';
 import ResumesTab from './ResumesTab';
@@ -32,6 +32,8 @@ export default function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
   const [analyzeProgress, setAnalyzeProgress] = useState<{ done: number; total: number } | null>(null);
+  // Default true to avoid a flash of the nudge on returning users; overwritten from config below
+  const [settingsAcknowledged, setSettingsAcknowledged] = useState(true);
   // True when reopened as a standalone window to keep analysis alive
   const isStandalone = new URLSearchParams(window.location.search).has('analyze');
 
@@ -40,7 +42,10 @@ export default function App() {
       if (stored.activeResumeIds?.length) setActiveResumeIds(stored.activeResumeIds);
       setStorageReady(true);
     });
-    getConfig().then((cfg) => setMaxResumes(cfg.maxResumes));
+    getConfig().then((cfg) => {
+      setMaxResumes(cfg.maxResumes);
+      setSettingsAcknowledged(cfg.settingsAcknowledged ?? false);
+    });
     getAnalysisResults().then(setResultsData);
 
     // Standalone window (opened by handleAnalyze with ?analyze param):
@@ -227,10 +232,31 @@ export default function App() {
 
   return (
     <div style={styles.container}>
+      {/* Inject pulse animation for the settings nudge — removed once acknowledged */}
+      {!settingsAcknowledged && !isStandalone && (
+        <style>{`@keyframes jobfit-pulse{0%,100%{box-shadow:0 0 0 0 rgba(26,115,232,0.55)}50%{box-shadow:0 0 0 7px rgba(26,115,232,0)}}`}</style>
+      )}
+
       {/* Header */}
       <div style={styles.header}>
         <span style={styles.logo}>JobFit</span>
-        <button style={styles.iconBtn} onClick={() => setShowSettings(!showSettings)}>⚙</button>
+        {/* First-run nudge: inline in header, pointing right at the ⚙ button */}
+        {!settingsAcknowledged && !isStandalone && (
+          <span style={styles.nudgeLabel}>👉 Start here</span>
+        )}
+        <button
+          style={{
+            ...styles.iconBtn,
+            ...(!settingsAcknowledged && !isStandalone ? styles.iconBtnPulse : {}),
+          }}
+          onClick={() => {
+            setShowSettings(!showSettings);
+            if (!settingsAcknowledged) {
+              setSettingsAcknowledged(true);
+              saveConfig({ settingsAcknowledged: true });
+            }
+          }}
+        >⚙</button>
       </div>
 
       {isAnalyzing && (
@@ -301,7 +327,9 @@ const styles: Record<string, React.CSSProperties> = {
   center: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 200, padding: 16, textAlign: 'center' },
   header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderBottom: '1px solid #e5e5e5' },
   logo: { fontWeight: 700, fontSize: 16 },
-  iconBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 2 },
+  iconBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 2, borderRadius: 4 },
+  iconBtnPulse: { animation: 'jobfit-pulse 1.5s ease-in-out infinite', color: '#1a73e8' },
+  nudgeLabel: { fontSize: 12, color: '#1a56c4', fontWeight: 600, marginLeft: 'auto', marginRight: 6 },
   tabs: { display: 'flex', borderBottom: '2px solid #e5e5e5' },
   tab: { flex: 1, padding: '8px 0', background: 'none', border: 'none', borderBottom: '3px solid transparent', cursor: 'pointer', fontSize: 13, color: '#888', marginBottom: -2 },
   tabActive: { borderBottom: '3px solid #1a73e8', color: '#1a73e8', fontWeight: 600, background: '#f0f6ff' },

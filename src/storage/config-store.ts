@@ -25,6 +25,8 @@ export interface AppConfig {
   maxResumes: number;
   maxJobPosts: number;
   staleJobDays: number;
+  // Onboarding
+  settingsAcknowledged?: boolean;
 }
 
 const DEFAULTS: AppConfig = {
@@ -39,6 +41,7 @@ const DEFAULTS: AppConfig = {
   maxResumes: DEFAULT_MAX_RESUMES,
   maxJobPosts: DEFAULT_MAX_JOB_POSTS,
   staleJobDays: DEFAULT_STALE_JOB_DAYS,
+  settingsAcknowledged: false,
 };
 
 export async function getConfig(): Promise<AppConfig> {

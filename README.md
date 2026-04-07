@@ -39,3 +39,4 @@ Prompt logs (resume + job + generated prompt + LLM response) are sent to Langfus
 | 9 | Download report grouped by `jobEmailId` so only first job URL appeared — fixed to group by `jobUrl \|\| jobEmailId` | `ResultsTab.tsx` |
 | 10 | Langfuse tracer missing `type: 'trace-create'` in ingestion batch body | `langfuse-tracer.ts` |
 | 11 | Prompt logs note in README was stale (logs are now suppressed, not auto-downloaded) | `README.md` |
+| 12 | No first-run guidance — added `settingsAcknowledged` flag; ⚙ button pulses and `👉 Start here` appears inline in header until user opens Settings once | `config-store.ts`, `App.tsx` |
