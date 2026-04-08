@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getConfig, saveConfig, AppConfig, LLMMode, ByokProvider } from '@storage/config-store';
-import { WORKER_URL, STRIPE_PRO_URL, OLLAMA_MODEL, OLLAMA_BASE_URL, LANGFUSE_BASE_URL } from '../../config';
+import { WORKER_URL, STRIPE_PRO_URL, OLLAMA_MODEL, OLLAMA_BASE_URL, LANGFUSE_BASE_URL, DEV_MODE } from '../../config';
 
 const BYOK_HINTS: Record<ByokProvider, string> = {
   groq:      'Get a free key at console.groq.com → API Keys. Free tier covers ~14,400 req/day.',
@@ -27,9 +27,6 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [langfuseSecretKey, setLangfuseSecretKey] = useState('');
   const [langfuseStatus, setLangfuseStatus] = useState<'idle' | 'ok' | 'error'>('idle');
   const [saveFolder, setSaveFolder] = useState('jobfit');
-  const [maxResumes, setMaxResumes] = useState(2);
-  const [maxJobPosts, setMaxJobPostsPerDay] = useState(50);
-  const [staleJobDays, setStaleJobDays] = useState(10);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -40,9 +37,6 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
       setByokProvider(cfg.byokProvider ?? 'groq');
       setApiKey(cfg.apiKey ?? '');
       setSaveFolder(cfg.saveFolder);
-      setMaxResumes(cfg.maxResumes);
-      setMaxJobPostsPerDay(cfg.maxJobPosts);
-      setStaleJobDays(cfg.staleJobDays);
       setOllamaModel(cfg.ollamaModel ?? 'qwen3:8b');
       setOllamaBaseUrl(cfg.ollamaBaseUrl ?? 'http://localhost:11434');
       setLangfuseEnabled(cfg.langfuseEnabled ?? false);
@@ -167,9 +161,6 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   async function handleSaveGeneral() {
     await saveConfig({
       saveFolder: saveFolder.trim() || 'jobfit',
-      maxResumes: Math.min(5, Math.max(1, maxResumes)),
-      maxJobPosts: Math.min(100, Math.max(1, maxJobPosts)),
-      staleJobDays: Math.min(90, Math.max(1, staleJobDays)),
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
@@ -271,121 +262,103 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
           )}
 
           {/* Ollama — local dev, no subscription */}
-          <label style={s.radioRow}>
-            <input type="radio" checked={mode === 'ollama'} onChange={() => setMode('ollama')} />
-            <span style={s.radioLabel}>Ollama <span style={s.devBadge}>dev</span></span>
-          </label>
+          {DEV_MODE && (
+            <>
+              <label style={s.radioRow}>
+                <input type="radio" checked={mode === 'ollama'} onChange={() => setMode('ollama')} />
+                <span style={s.radioLabel}>Ollama <span style={s.devBadge}>dev</span></span>
+              </label>
 
-          {mode === 'ollama' && (
-            <div style={s.indent}>
-              <div style={s.hint}>Runs locally — no subscription or API key required.</div>
+              {mode === 'ollama' && (
+                <div style={s.indent}>
+                  <div style={s.hint}>Runs locally — no subscription or API key required.</div>
 
-              <div style={s.fieldLabel}>Base URL</div>
-              <input
-                style={s.input}
-                type="text"
-                value={ollamaBaseUrl}
-                onChange={(e) => { setOllamaBaseUrl(e.target.value); setOllamaStatus('idle'); }}
-                placeholder="http://localhost:11434"
-              />
+                  <div style={s.fieldLabel}>Base URL</div>
+                  <input
+                    style={s.input}
+                    type="text"
+                    value={ollamaBaseUrl}
+                    onChange={(e) => { setOllamaBaseUrl(e.target.value); setOllamaStatus('idle'); }}
+                    placeholder="http://localhost:11434"
+                  />
 
-              <div style={s.fieldLabel}>Model</div>
-              <div style={s.row}>
-                <input
-                  style={s.input}
-                  type="text"
-                  value={ollamaModel}
-                  onChange={(e) => { setOllamaModel(e.target.value); setOllamaStatus('idle'); }}
-                  placeholder="qwen3:8b"
-                />
-                <button style={s.saveBtn} onClick={saveOllama} disabled={ollamaStatus === 'validating'}>
-                  {ollamaStatus === 'validating' ? '…' : 'Test'}
-                </button>
-              </div>
-              {ollamaStatus === 'ok'    && <div style={s.ok}>Connected — model saved</div>}
-              {ollamaStatus === 'error' && <div style={s.err}>Could not reach Ollama — is it running?</div>}
-            </div>
+                  <div style={s.fieldLabel}>Model</div>
+                  <div style={s.row}>
+                    <input
+                      style={s.input}
+                      type="text"
+                      value={ollamaModel}
+                      onChange={(e) => { setOllamaModel(e.target.value); setOllamaStatus('idle'); }}
+                      placeholder="qwen3:8b"
+                    />
+                    <button style={s.saveBtn} onClick={saveOllama} disabled={ollamaStatus === 'validating'}>
+                      {ollamaStatus === 'validating' ? '…' : 'Test'}
+                    </button>
+                  </div>
+                  {ollamaStatus === 'ok'    && <div style={s.ok}>Connected — model saved</div>}
+                  {ollamaStatus === 'error' && <div style={s.err}>Could not reach Ollama — is it running?</div>}
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        {/* ── Observability (Langfuse) ── */}
-        <div style={s.section}>
-          <div style={s.sectionLabel}>Observability (Langfuse)</div>
+        {/* ── Observability (Langfuse) — dev only ── */}
+        {DEV_MODE && (
+          <div style={s.section}>
+            <div style={s.sectionLabel}>Observability (Langfuse)</div>
 
-          <label style={{ ...s.radioRow, marginBottom: 8 }}>
-            <input
-              type="checkbox"
-              checked={langfuseEnabled}
-              onChange={(e) => handleLangfuseToggle(e.target.checked)}
-            />
-            <span style={s.radioLabel}>Enable Langfuse tracing</span>
-          </label>
-          <div style={s.hint}>
-            Traces every LLM call — prompt, response, tokens, latency — to your self-hosted Langfuse instance.
-          </div>
+            <label style={{ ...s.radioRow, marginBottom: 8 }}>
+              <input
+                type="checkbox"
+                checked={langfuseEnabled}
+                onChange={(e) => handleLangfuseToggle(e.target.checked)}
+              />
+              <span style={s.radioLabel}>Enable Langfuse tracing</span>
+            </label>
+            <div style={s.hint}>
+              Traces every LLM call — prompt, response, tokens, latency — to your self-hosted Langfuse instance.
+            </div>
 
-          <div style={s.fieldLabel}>Host URL</div>
-          <input
-            style={s.input}
-            type="text"
-            value={langfuseHost}
-            onChange={(e) => { setLangfuseHost(e.target.value); setLangfuseStatus('idle'); }}
-            placeholder="http://localhost:3001"
-          />
-
-          <div style={s.fieldLabel}>Public Key</div>
-          <input
-            style={s.input}
-            type="text"
-            value={langfusePublicKey}
-            onChange={(e) => { setLangfusePublicKey(e.target.value); setLangfuseStatus('idle'); }}
-            placeholder="pk-lf-..."
-          />
-
-          <div style={s.fieldLabel}>Secret Key</div>
-          <div style={s.row}>
+            <div style={s.fieldLabel}>Host URL</div>
             <input
               style={s.input}
-              type="password"
-              value={langfuseSecretKey}
-              onChange={(e) => { setLangfuseSecretKey(e.target.value); setLangfuseStatus('idle'); }}
-              placeholder="sk-lf-..."
+              type="text"
+              value={langfuseHost}
+              onChange={(e) => { setLangfuseHost(e.target.value); setLangfuseStatus('idle'); }}
+              placeholder="http://localhost:3001"
             />
-            <button style={s.saveBtn} onClick={saveLangfuse}>
-              Save
-            </button>
+
+            <div style={s.fieldLabel}>Public Key</div>
+            <input
+              style={s.input}
+              type="text"
+              value={langfusePublicKey}
+              onChange={(e) => { setLangfusePublicKey(e.target.value); setLangfuseStatus('idle'); }}
+              placeholder="pk-lf-..."
+            />
+
+            <div style={s.fieldLabel}>Secret Key</div>
+            <div style={s.row}>
+              <input
+                style={s.input}
+                type="password"
+                value={langfuseSecretKey}
+                onChange={(e) => { setLangfuseSecretKey(e.target.value); setLangfuseStatus('idle'); }}
+                placeholder="sk-lf-..."
+              />
+              <button style={s.saveBtn} onClick={saveLangfuse}>
+                Save
+              </button>
+            </div>
+            {langfuseStatus === 'ok'    && <div style={s.ok}>Settings saved</div>}
+            {langfuseStatus === 'error' && <div style={s.err}>Host URL is required</div>}
           </div>
-          {langfuseStatus === 'ok'    && <div style={s.ok}>Settings saved</div>}
-          {langfuseStatus === 'error' && <div style={s.err}>Host URL is required</div>}
-        </div>
+        )}
 
         {/* ── General ── */}
         <div style={s.section}>
           <div style={s.sectionLabel}>General</div>
-
-          <div style={s.fieldLabel}>Max resumes <span style={s.fieldHint}>(1–5)</span></div>
-          <input
-            style={{ ...s.input, width: 60 }}
-            type="number" min={1} max={5}
-            value={maxResumes}
-            onChange={(e) => setMaxResumes(Number(e.target.value))}
-          />
-
-          <div style={s.fieldLabel}>Max job posts to load <span style={s.fieldHint}>(1–100)</span></div>
-          <input
-            style={{ ...s.input, width: 60 }}
-            type="number" min={1} max={100}
-            value={maxJobPosts}
-            onChange={(e) => setMaxJobPostsPerDay(Number(e.target.value))}
-          />
-
-          <div style={s.fieldLabel}>Stale job posts cleanup reminder <span style={s.fieldHint}>(days, 1–90)</span></div>
-          <input
-            style={{ ...s.input, width: 60 }}
-            type="number" min={1} max={90}
-            value={staleJobDays}
-            onChange={(e) => setStaleJobDays(Number(e.target.value))}
-          />
 
           <div style={s.fieldLabel}>Log and Download folder</div>
           <div style={s.hint}>Results saved to Downloads/<span style={{ fontStyle: 'italic' }}>{saveFolder || 'jobfit'}</span>/</div>

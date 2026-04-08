@@ -59,3 +59,30 @@ export async function saveAnalysisResults(
 export async function clearAnalysisResults(): Promise<void> {
   await chrome.storage.local.remove(RESULTS_KEY);
 }
+
+// ── Daily analysis counter ────────────────────────────────────────────────
+
+const DAILY_USAGE_KEY = 'dailyUsage';
+
+interface DailyUsage {
+  date: string; // YYYY-MM-DD
+  count: number;
+}
+
+function today(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export async function getDailyCount(): Promise<number> {
+  const result = await chrome.storage.local.get(DAILY_USAGE_KEY);
+  const usage = result[DAILY_USAGE_KEY] as DailyUsage | undefined;
+  if (!usage || usage.date !== today()) return 0;
+  return usage.count;
+}
+
+export async function incrementDailyCount(): Promise<number> {
+  const current = await getDailyCount();
+  const next = current + 1;
+  await chrome.storage.local.set({ [DAILY_USAGE_KEY]: { date: today(), count: next } });
+  return next;
+}

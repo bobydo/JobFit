@@ -1,4 +1,4 @@
-import { OLLAMA_MODEL, OLLAMA_BASE_URL, DEFAULT_MAX_RESUMES, DEFAULT_MAX_JOB_POSTS, DEFAULT_STALE_JOB_DAYS, DEFAULT_SAVE_FOLDER, LANGFUSE_ENABLED, LANGFUSE_BASE_URL, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY } from '../config';
+import { OLLAMA_MODEL, OLLAMA_BASE_URL, DEFAULT_MAX_RESUMES, DEFAULT_MAX_JOB_POSTS, DEFAULT_STALE_JOB_DAYS, DEFAULT_SAVE_FOLDER, LANGFUSE_ENABLED, LANGFUSE_BASE_URL, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, GROQ_DEFAULT_API_KEY } from '../config';
 export type LLMMode = 'jobfit-cloud' | 'groq' | 'anthropic' | 'openai' | 'ollama';
 export type ByokProvider = 'groq' | 'anthropic' | 'openai';
 export type SubscriptionPlan = 'pro';
@@ -30,7 +30,9 @@ export interface AppConfig {
 }
 
 const DEFAULTS: AppConfig = {
-  mode: 'jobfit-cloud',
+  mode: 'groq',
+  apiKey: GROQ_DEFAULT_API_KEY,
+  byokProvider: 'groq',
   ollamaModel: OLLAMA_MODEL,
   ollamaBaseUrl: OLLAMA_BASE_URL,
   langfuseEnabled: LANGFUSE_ENABLED,

@@ -26,17 +26,25 @@ const JOB: JobEmail = {
   subject: 'Applications Software Developer — Ford EV',
   body: readFileSync(resolve(SAMPLES, 'JobPost.txt'), 'utf-8'),
   urls: [],
-  date: new Date(),
+  date: Date.now(),
 };
 
-// Keys come from src/config.ts — no .env needed
-const langfuseConfig = { saveFolder: 'jobfit', langfuseEnabled: true };
+const testConfig = {
+  mode: 'ollama' as const,
+  saveFolder: 'jobfit',
+  langfuseEnabled: true,
+  ollamaBaseUrl: 'http://localhost:11434',
+  ollamaModel: 'qwen3:8b',
+  maxResumes: 2,
+  maxJobPosts: 60,
+  staleJobDays: 10,
+};
 
 beforeEach(() => vi.clearAllMocks());
 
 describe('match-analyzer — integration with Ollama', () => {
   it('returns valid score + skill gaps and generates a prompt log', async () => {
-    const result = await analyzePair(RESUME, JOB, 'http://localhost:11434', 'qwen3:8b', langfuseConfig);
+    const result = await analyzePair(RESUME, JOB, testConfig);
 
     // ── result ────────────────────────────────────────────────────────────
     console.log('\n══════════════ Match Result ══════════════');

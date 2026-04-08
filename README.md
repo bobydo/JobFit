@@ -75,3 +75,63 @@ Prompt to ChatGPT (judge):
 ```
 
 > This is free testing for your local model — if qwen3:8b consistently misses what GPT-4o catches, you know exactly where to improve your prompt in `src/config.ts`.
+
+### 4. Planning Pattern — Risks & Quality Control
+
+The Planning pattern (chaining multiple LLM calls where each step feeds the next) is powerful but unstable.
+
+**Risks:**
+
+| Risk | Why it happens | Impact |
+|---|---|---|
+| **Error compounding** | Step 2 feeds on Step 1 output — a bad Step 1 poisons everything downstream | Final result is wrong but looks confident |
+| **Hallucinated tool calls** | LLM invents function names or parameters that don't exist | Runtime crash or silent wrong data |
+| **Infinite loops** | LLM re-plans endlessly, never decides it's done | Cost blowout, timeout |
+| **Latency** | 3+ LLM calls in sequence = 3× the wait time | Poor UX |
+| **Cost** | Each step is a full API call | Expensive at scale |
+| **Prompt drift** | Each step's context grows longer → model loses focus | Later steps ignore earlier instructions |
+
+**Quality Control:**
+
+| Control | How |
+|---|---|
+| **Validate each step** | Schema/content check before passing output forward — fail fast, don't compound |
+| **Cap steps** | Hard limit (e.g. `MAX_STEPS = 5`) — never let the agent plan beyond this |
+| **Reflection step** | After each tool call ask: "Does this output look correct? Y/N" |
+| **Human-in-the-loop** | Pause at key decision points, show intermediate results before continuing |
+| **LLM-as-judge at end** | Send final output to GPT-4o to verify quality (see Section 3 above) |
+
+**JobFit-specific risk:** Current flow is one LLM call per resume+job pair — stable and cheap. If evolved to Planning pattern (fetch URL → extract requirements → score → suggest edits), the biggest risk is Step 1 (URL fetch/parse) failing silently — Steps 2–3 would then analyze garbage HTML instead of the actual job description. Guard that boundary first.
+
+### 5. Local LLM Deployment
+
+> From [Local LLM video](https://www.youtube.com/watch?v=vehYE1DfkZg) — *Your machine. Your data. Your rules.*
+
+| | Details |
+|---|---|
+| **Tools** | Ollama, LM Studio, llama.cpp, vLLM, Open WebUI, Docker + Ollama, Cloudflare Tunnel |
+| **Best for** | Privacy-sensitive work, offline use, personal AI assistant, always-on server (e.g. Mac Mini) |
+
+**Examples:**
+- Replace ChatGPT privately → LM Studio + open source model, nothing leaves your machine
+- Mac Mini home server → always on, access from any device at home, zero monthly cost
+- Local app with public demo → Ollama + Cloudflare Tunnel to share with teammates
+
+| Pros | Cons |
+|---|---|
+| Completely private — data never leaves your machine | Limited by your hardware |
+| Free to run after hardware cost | Need to keep machine running |
+| Works fully offline, no rate limits | You manage everything yourself |
+
+**Cloudflare Tunnel — expose local LLM publicly:**
+1. Install: `brew install cloudflare/cloudflare/cloudflared`
+2. Login: `cloudflared tunnel login`
+3. Create tunnel: `cloudflared tunnel create jobfit`
+4. Start Ollama: `ollama serve` (default port 11434)
+5. Run tunnel: `cloudflared tunnel --url http://localhost:11434 run jobfit`
+6. Use the generated `*.trycloudflare.com` URL as your API endpoint
+- Always-on + stable
+- macOS is Unix-based → very stable for long-running services
+- Great for things like Cloudflare Tunnel (cloudflared) and local servers
+
+

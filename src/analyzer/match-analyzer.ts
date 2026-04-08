@@ -1,8 +1,14 @@
-import { ollamaChat } from '../llm/ollama-provider';
+import { llmChat } from '../llm/llm-router';
 import { fetchJobPage, fetchJobPageViaTab } from '@utils/job-page-fetcher';
 import { savePromptLog } from '@utils/prompt-logger';
 import { traceLlmCall } from '@utils/langfuse-tracer';
-import { LANGFUSE_ENABLED, LANGFUSE_BASE_URL, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY } from '../config';
+import {
+  LANGFUSE_ENABLED, LANGFUSE_BASE_URL, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY,
+  DAILY_ANALYSIS_LIMIT,
+  GROQ_DEFAULT_MODEL, OPENAI_DEFAULT_MODEL, ANTHROPIC_DEFAULT_MODEL,
+  OLLAMA_MODEL,
+} from '../config';
+import { getDailyCount, incrementDailyCount } from '../storage/cache-store';
 import type { Resume, JobEmail, AnalysisResult } from '../popup/types';
 import type { AppConfig } from '../storage/config-store';
 
@@ -10,6 +16,16 @@ interface LLMResponse {
   matchScore: number;
   matchSummary: string;
   skillsGaps: string[];
+}
+
+function getModelName(config: AppConfig): string {
+  switch (config.mode) {
+    case 'groq':      return GROQ_DEFAULT_MODEL;
+    case 'openai':    return OPENAI_DEFAULT_MODEL;
+    case 'anthropic': return ANTHROPIC_DEFAULT_MODEL;
+    case 'ollama':    return config.ollamaModel ?? OLLAMA_MODEL;
+    default:          return config.mode;
+  }
 }
 
 function buildPrompt(resume: Resume, job: JobEmail): string {
@@ -63,48 +79,58 @@ function parseResponse(raw: string): LLMResponse {
 export async function analyzePair(
   resume: Resume,
   job: JobEmail,
-  ollamaBaseUrl: string,
-  ollamaModel: string,
-  config?: Pick<AppConfig, 'saveFolder' | 'langfuseEnabled' | 'langfuseHost' | 'langfusePublicKey' | 'langfuseSecretKey'>
+  config: AppConfig
 ): Promise<AnalysisResult> {
   const systemMessage = { role: 'system' as const, content: 'You are a professional career advisor. Evaluate how well a candidate\'s resume matches a job posting. Be concise and honest.' };
-  const userPrompt = buildPrompt(resume, job);
-  const userMessage = { role: 'user' as const, content: userPrompt };
+  const userMessage = { role: 'user' as const, content: buildPrompt(resume, job) };
   const messages = [systemMessage, userMessage];
 
-  const result = await ollamaChat({ baseUrl: ollamaBaseUrl, model: ollamaModel, messages });
+  const count = await getDailyCount();
+  if (count >= DAILY_ANALYSIS_LIMIT) {
+    const resetTime = new Date();
+    resetTime.setDate(resetTime.getDate() + 1);
+    resetTime.setHours(0, 0, 0, 0);
+    const hh = resetTime.getHours().toString().padStart(2, '0');
+    const mm = resetTime.getMinutes().toString().padStart(2, '0');
+    throw new Error(
+      `Daily limit reached — you've used ${count}/${DAILY_ANALYSIS_LIMIT} analyses today. ` +
+      `Resets at midnight (${hh}:${mm} local time).`
+    );
+  }
+  await incrementDailyCount();
 
+  const result = await llmChat(config, messages);
   const { matchScore, matchSummary, skillsGaps } = parseResponse(result.content);
+  const model = getModelName(config);
 
   // Save prompt log as JSON to Downloads/saveFolder/logs/
-  const saveFolder = config?.saveFolder ?? 'jobfit';
   savePromptLog({
     timestamp: result.startTime.toISOString(),
     jobId: job.id,
     resumeSubject: resume.subject,
     jobSubject: job.subject,
     jobBody: job.body,
-    model: ollamaModel,
+    model,
     messages,
     rawResponse: result.content,
     parsedResult: { matchScore, matchSummary, skillsGaps },
     promptTokens: result.promptTokens,
     completionTokens: result.completionTokens,
     latencyMs: result.latencyMs,
-  }, saveFolder);
+  }, config.saveFolder);
 
   // Send trace to Langfuse if enabled (build-time flag AND runtime toggle)
-  const lfHost   = config?.langfuseHost       || LANGFUSE_BASE_URL;
-  const lfPubKey = config?.langfusePublicKey  || LANGFUSE_PUBLIC_KEY;
-  const lfSecKey = config?.langfuseSecretKey  || LANGFUSE_SECRET_KEY;
+  const lfHost   = config.langfuseHost      || LANGFUSE_BASE_URL;
+  const lfPubKey = config.langfusePublicKey || LANGFUSE_PUBLIC_KEY;
+  const lfSecKey = config.langfuseSecretKey || LANGFUSE_SECRET_KEY;
 
-  if (LANGFUSE_ENABLED && (config?.langfuseEnabled ?? true) && lfPubKey && lfSecKey) {
+  if (LANGFUSE_ENABLED && (config.langfuseEnabled ?? true) && lfPubKey && lfSecKey) {
     await traceLlmCall(
       { host: lfHost, publicKey: lfPubKey, secretKey: lfSecKey },
       {
         traceId: crypto.randomUUID(),
         name: 'resume-job-match',
-        model: ollamaModel,
+        model,
         messages,
         output: result.content,
         startTime: result.startTime,
@@ -138,13 +164,11 @@ export async function analyzeUrl(
   resume: Resume,
   url: string,
   emailId: string,
-  ollamaBaseUrl: string,
-  ollamaModel: string,
-  config?: Pick<AppConfig, 'saveFolder' | 'langfuseEnabled' | 'langfuseHost' | 'langfusePublicKey' | 'langfuseSecretKey'>
+  config: AppConfig
 ): Promise<AnalysisResult | null> {
   let page = await fetchJobPage(url).catch(() => null);
   if (!page) page = await fetchJobPageViaTab(url).catch(() => null);
   if (!page) return null;
   const fakeJob: JobEmail = { id: emailId, subject: page.title, body: page.body, urls: [url], date: Date.now() };
-  return analyzePair(resume, fakeJob, ollamaBaseUrl, ollamaModel, config);
+  return analyzePair(resume, fakeJob, config);
 }

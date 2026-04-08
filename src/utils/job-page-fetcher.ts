@@ -28,7 +28,7 @@ export async function fetchJobPage(url: string): Promise<JobPageData | null> {
   const html = await res.text();
   const doc = new DOMParser().parseFromString(html, 'text/html');
 
-  for (const el of doc.querySelectorAll('script[type="application/ld+json"]')) {
+  for (const el of Array.from(doc.querySelectorAll('script[type="application/ld+json"]'))) {
     try {
       const data = JSON.parse(el.textContent ?? '');
       const entries: unknown[] = Array.isArray(data) ? data : [data];

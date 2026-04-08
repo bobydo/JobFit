@@ -4,17 +4,21 @@
 /** Cloudflare Worker URL for JobFit Cloud token validation */
 export const WORKER_URL = 'https://YOUR_WORKER.workers.dev';
 
-/** Stripe Payment Link — Pro plan ($11/mo, 2 resumes, 50 analyses/day) */
+/** Stripe Payment Link — Pro plan ($11/mo, 2 resumes, 120 analyses/day) */
 export const STRIPE_PRO_URL = 'https://buy.stripe.com/YOUR_PRO_LINK';
 
-// ── Ollama defaults ────────────────────────────────────────────────────────
-// Shown as placeholder values in Settings; stored in chrome.storage after first save.
-export const OLLAMA_MODEL    = 'qwen3:8b';
-export const OLLAMA_BASE_URL = 'http://localhost:11434';
+// ── LLM model defaults ────────────────────────────────────────────────────
+export const OLLAMA_MODEL        = 'qwen3:8b';
+export const OLLAMA_BASE_URL     = 'http://localhost:11434';
+export const GROQ_DEFAULT_MODEL      = 'llama-3.1-8b-instant';
+// https://console.groq.com/keys — create a free account to get an API key, then set it in extension Settings → BYOK
+export const GROQ_DEFAULT_API_KEY    = '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'; // test key — revoke after prod
+export const OPENAI_DEFAULT_MODEL    = 'gpt-4o-mini';
+export const ANTHROPIC_DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
 
 // ── General defaults ───────────────────────────────────────────────────────
 export const DEFAULT_MAX_RESUMES   = 2;   // 1–5
-export const DEFAULT_MAX_JOB_POSTS = 50;  // 1–100
+export const DEFAULT_MAX_JOB_POSTS = 60;  // 1–100
 export const DEFAULT_STALE_JOB_DAYS = 10; // 1–90
 export const DEFAULT_SAVE_FOLDER   = 'jobfit';
 
@@ -31,6 +35,11 @@ export const ANALYSIS_POPUP_WIDTH  = 540;
 export const ANALYSIS_POPUP_HEIGHT = 620;
 export const ANALYSIS_POPUP_MARGIN = 16; // gap from screen edge (px)
 
+// ── Daily analysis limit ──────────────────────────────────────────────────
+// Derived — adjust DEFAULT_MAX_JOB_POSTS to scale this automatically
+export const DAILY_ANALYSIS_LIMIT = DEFAULT_MAX_RESUMES * DEFAULT_MAX_JOB_POSTS; // 2 × 60 = 120
+
 // ── Dev / test ─────────────────────────────────────────────────────────────
-export const TEST_LOG_DIR     = 'src/logs';
+export const DEV_MODE     = false; // set true before dev builds — shows Ollama + Langfuse in Settings
+export const TEST_LOG_DIR = 'src/logs';
 

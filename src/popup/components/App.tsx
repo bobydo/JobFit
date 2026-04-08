@@ -62,18 +62,25 @@ export default function App() {
     }
   }, []);
 
+  function getConfigError(cfg: Awaited<ReturnType<typeof getConfig>>): string | null {
+    if (['groq', 'anthropic', 'openai'].includes(cfg.mode) && !cfg.apiKey)
+      return 'Please add your API key in Settings.';
+    if (cfg.mode === 'jobfit-cloud' && !cfg.subscriptionToken)
+      return 'Please add your subscription token in Settings.';
+    return null;
+  }
+
   async function runAnalysis(selectedJobs: JobEmail[], activeResumes: Resume[]) {
     setIsAnalyzing(true);
     setAnalyzeError(null);
 
     const cfg = await getConfig();
-    if (cfg.mode !== 'ollama') {
-      setAnalyzeError('Please configure Ollama in Settings before analyzing.');
+    const cfgErr = getConfigError(cfg);
+    if (cfgErr) {
+      setAnalyzeError(cfgErr);
       setIsAnalyzing(false);
       return;
     }
-    const baseUrl = cfg.ollamaBaseUrl ?? 'http://localhost:11434';
-    const model = cfg.ollamaModel ?? 'qwen3:8b';
 
     const existing = await getAnalysisResults();
     const resultMap = new Map(existing.map((r) => [`${r.jobEmailId}::${r.jobUrl}::${r.resumeId}`, r]));
@@ -95,7 +102,7 @@ export default function App() {
           try {
             let result: AnalysisResult | null = null;
             try {
-              result = await analyzeUrl(resume, url, job.id, baseUrl, model, cfg);
+              result = await analyzeUrl(resume, url, job.id, cfg);
             } catch (err) {
               console.warn('[JobFit] URL fetch failed:', url, err);
             }
@@ -103,7 +110,7 @@ export default function App() {
               const jobIdMatch = url.match(/\/(\d+)\//);
               const subject = jobIdMatch ? `${job.subject} #${jobIdMatch[1]}` : job.subject;
               const fakeJob: JobEmail = { id: job.id, subject, body: job.body, urls: [url], date: job.date };
-              result = await analyzePair(resume, fakeJob, baseUrl, model, cfg);
+              result = await analyzePair(resume, fakeJob, cfg);
             }
             const key = `${job.id}::${url}::${resume.id}`;
             resultMap.set(key, result);
@@ -131,8 +138,9 @@ export default function App() {
     }
     const activeResumes = resumesData.filter((r) => activeResumeIds.includes(r.id));
     const cfg = await getConfig();
-    if (cfg.mode !== 'ollama') {
-      setAnalyzeError('Please configure Ollama in Settings before analyzing.');
+    const cfgErr = getConfigError(cfg);
+    if (cfgErr) {
+      setAnalyzeError(cfgErr);
       return;
     }
 
