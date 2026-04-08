@@ -1,5 +1,21 @@
 # JobFit Setup Checklist
 
+## Local LLM Setup (Ollama + qwen3:8b)
+
+1. **Download Ollama** — [https://ollama.com/download](https://ollama.com/download) → install for Windows
+2. **Pull the model** — open a terminal and run:
+   ```bash
+   ollama pull qwen3:8b
+   ```
+3. **Verify it's running:**
+   ```bash
+   ollama list        # should show qwen3:8b
+   ollama run qwen3:8b "hello"   # quick smoke test
+   ```
+4. Ollama serves at `http://localhost:11434` by default — no further config needed for JobFit local mode.
+
+> `qwen3:8b` requires ~5 GB disk space and runs well on 8 GB RAM. For faster responses on weaker hardware, try `qwen3:4b` instead.
+
 ## Google Cloud Console (project: JobFit)
 - https://console.cloud.google.com/ → sign in → select JobFit project
 
@@ -57,6 +73,3 @@ Chrome extensions send requests with a `chrome-extension://` origin, which Ollam
   2. Receive confirmation email with token
   3. Open extension Settings → JobFit Cloud → paste token → verify "Token saved" appears
   4. Token is proof of payment — user pastes it once, extension remembers it via `chrome.storage.sync`
-
-## Should see it after sign in
-![FolderCheck](image/Setup/FolderCheck.png)
