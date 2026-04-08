@@ -12,7 +12,8 @@ export const OLLAMA_MODEL        = 'qwen3:8b';
 export const OLLAMA_BASE_URL     = 'http://localhost:11434';
 export const GROQ_DEFAULT_MODEL      = 'llama-3.1-8b-instant';
 // https://console.groq.com/keys — create a free account to get an API key, then set it in extension Settings → BYOK
-export const GROQ_DEFAULT_API_KEY    = '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'; // test key — revoke after prod
+// For testing without an API key, the extension will fall back to a shared key with very limited capacity — expect delays and possible failures.
+export const GROQ_DEFAULT_API_KEY    = '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'; 
 export const OPENAI_DEFAULT_MODEL    = 'gpt-4o-mini';
 export const ANTHROPIC_DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
 
