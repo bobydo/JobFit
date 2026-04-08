@@ -16,6 +16,30 @@
 
 > `qwen3:8b` requires ~5 GB disk space and runs well on 8 GB RAM. For faster responses on weaker hardware, try `qwen3:4b` instead.
 
+## Langfuse Setup (local observability)
+
+1. **Download Docker Desktop** — [https://www.docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop) → install and launch it
+2. **Clone Langfuse:**
+   ```bash
+   git clone https://github.com/langfuse/langfuse.git
+   cd langfuse
+   ```
+3. **Start Langfuse:**
+   ```bash
+   docker compose up -d
+   ```
+   First run downloads ~1 GB of images. Wait ~30 seconds, then open [http://localhost:3000](http://localhost:3000) (or `3001` if you remapped the port).
+4. **Create a project:**
+   - Sign up / log in → **+ New Project** → name it `JobFit` → Create
+5. **Get API keys:**
+   - Go to **Settings → API Keys → Create new key pair**
+   - Copy the **Public Key** (`pk-lf-...`) and **Secret Key** (`sk-lf-...`)
+6. **Enable in JobFit:**
+   - In `src/config.ts` set `LANGFUSE_ENABLED = true` → rebuild
+   - Open the extension → **Settings → Observability** → paste both keys → Save
+
+> To stop Langfuse: `docker compose down` inside the `langfuse/` folder. Data persists in Docker volumes.
+
 ## Google Cloud Console (project: JobFit)
 - https://console.cloud.google.com/ → sign in → select JobFit project
 
