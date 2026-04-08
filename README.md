@@ -24,6 +24,16 @@ Prompt logs (resume + job + generated prompt + LLM response) are sent to Langfus
 
 - Run test.ts => npx vitest run --reporter=verbose
 
+## AI Agent Building Blocks
+
+| Building block | Examples | Use cases |
+|---|---|---|
+| **Models** | LLMs | Text generation, tool use, information extraction |
+| | Other AI models | PDF-to-text, text-to-speech, image analysis |
+| **Tools** | API | Web search, get real-time data, send email, check calendar |
+| | Information retrieval | Databases, Retrieval Augmented Generation (RAG) |
+| | Code execution | Basic calculator, data analysis |
+
 ## Fix log
 
 | # | Fix | Files |
