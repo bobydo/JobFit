@@ -27,6 +27,7 @@ export interface AppConfig {
   staleJobDays: number;
   // Onboarding
   settingsAcknowledged?: boolean;
+  emailSignupShown?: boolean;
 }
 
 const DEFAULTS: AppConfig = {

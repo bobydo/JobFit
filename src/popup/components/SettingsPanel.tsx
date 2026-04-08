@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getConfig, saveConfig, AppConfig, LLMMode, ByokProvider } from '@storage/config-store';
 import { getAuthToken, removeAuthToken } from '@gmail/gmail-auth';
-import { WORKER_URL, STRIPE_PRO_URL, SIGNUP_FORM_URL, OLLAMA_MODEL, OLLAMA_BASE_URL, LANGFUSE_BASE_URL, DEV_MODE } from '../../config';
+import { WORKER_URL, STRIPE_PRO_URL, OLLAMA_MODEL, OLLAMA_BASE_URL, LANGFUSE_BASE_URL, DEV_MODE } from '../../config';
 
 const BYOK_HINTS: Record<ByokProvider, string> = {
   groq:      'Get a free key at console.groq.com → API Keys. Free tier covers ~14,400 req/day.',
@@ -370,15 +370,6 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
           </div>
         )}
 
-        {/* ── Account ── */}
-        <div style={s.section}>
-          <div style={s.sectionLabel}>Stay Updated</div>
-          <div style={s.hint}>Get high quality tutorial videos and early access to new features — straight to your inbox.</div>
-          <button style={s.accountBtn} onClick={() => chrome.runtime.sendMessage({ type: 'OPEN_URL', url: SIGNUP_FORM_URL })}>
-            Get Early Access →
-          </button>
-        </div>
-
         {/* ── General ── */}
         <div style={s.section}>
           <div style={s.sectionLabel}>General</div>
@@ -451,7 +442,7 @@ const s: Record<string, React.CSSProperties> = {
   planDetail:   { fontSize: 11, color: '#666', margin: '4px 0 8px' },
   subscribeBtn: { width: '100%', padding: '5px 0', fontSize: 12, background: '#f1f3f4', color: '#1a73e8', border: '1px solid #1a73e8', borderRadius: 4, cursor: 'pointer' },
   subscribeBtnPro: { background: '#1a73e8', color: '#fff' },
-  accountBtn:   { padding: '7px 14px', fontSize: 12, background: '#34a853', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', marginTop: 6 },
+  accountBtn:   { display: 'inline-block', padding: '7px 14px', fontSize: 12, background: '#34a853', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', marginTop: 6, textDecoration: 'none' },
   modal:        { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
   modalBox:     { background: '#fff', borderRadius: 8, padding: 20, maxWidth: 340, margin: '0 16px' },
   modalTitle:   { fontWeight: 700, fontSize: 14, marginBottom: 10 },

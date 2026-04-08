@@ -9,7 +9,7 @@ import JobPostsTab from './JobPostsTab';
 import ResultsTab from './ResultsTab';
 import SettingsPanel from './SettingsPanel';
 import type { Resume, JobEmail, AnalysisResult } from '../types';
-import { ANALYSIS_POPUP_WIDTH, ANALYSIS_POPUP_HEIGHT, ANALYSIS_POPUP_MARGIN } from '../../config';
+import { ANALYSIS_POPUP_WIDTH, ANALYSIS_POPUP_HEIGHT, ANALYSIS_POPUP_MARGIN, SIGNUP_FORM_URL } from '../../config';
 
 type Tab = 'resumes' | 'jobposts' | 'results';
 
@@ -34,6 +34,8 @@ export default function App() {
   const [analyzeProgress, setAnalyzeProgress] = useState<{ done: number; total: number } | null>(null);
   // Default true to avoid a flash of the nudge on returning users; overwritten from config below
   const [settingsAcknowledged, setSettingsAcknowledged] = useState(true);
+  const [showEmailSignup, setShowEmailSignup] = useState(false);
+  const [signupEmail, setSignupEmail] = useState('');
   // True when reopened as a standalone window to keep analysis alive
   const isStandalone = new URLSearchParams(window.location.search).has('analyze');
 
@@ -61,6 +63,18 @@ export default function App() {
       });
     }
   }, []);
+
+  function handleSignupYes() {
+    setShowEmailSignup(false);
+    saveConfig({ emailSignupShown: true });
+  }
+  function handleSignupNo() {
+    setShowEmailSignup(false);
+    saveConfig({ emailSignupShown: true });
+  }
+  function handleSignupLater() {
+    setShowEmailSignup(false);
+  }
 
   function getConfigError(cfg: Awaited<ReturnType<typeof getConfig>>): string | null {
     if (['groq', 'anthropic', 'openai'].includes(cfg.mode) && !cfg.apiKey)
@@ -221,6 +235,14 @@ export default function App() {
 
   useEffect(() => { checkLabels(); }, []);
 
+  // Show email signup screen once labels are confirmed ready
+  useEffect(() => {
+    if (setup.status !== 'ready' || isStandalone) return;
+    getConfig().then((cfg) => {
+      if (!cfg.emailSignupShown) setShowEmailSignup(true);
+    });
+  }, [setup.status]);
+
   if (setup.status === 'checking') {
     return <div style={styles.center}>Checking Gmail labels…</div>;
   }
@@ -236,6 +258,31 @@ export default function App() {
 
   if (setup.status === 'needs_setup') {
     return <OnboardingScreen missingLabels={setup.missingLabels} onContinue={checkLabels} />;
+  }
+
+  if (showEmailSignup) {
+    return (
+      <div style={styles.signupScreen}>
+        <div style={styles.signupBox}>
+          <div style={styles.signupTitle}>Stay Updated with JobFit</div>
+          <p style={styles.signupText}>Get job search tutorial videos and early access to new features — straight to your inbox.</p>
+          <input
+            type="email"
+            placeholder="your@email.com"
+            value={signupEmail}
+            onChange={(e) => setSignupEmail(e.target.value)}
+            style={styles.signupInput}
+          />
+          <div style={styles.signupBtns}>
+            <a href={SIGNUP_FORM_URL} target="_blank" rel="noreferrer" style={styles.signupYes} onClick={handleSignupYes}>
+              Yes, sign me up
+            </a>
+            <button style={styles.signupLater} onClick={handleSignupLater}>Later</button>
+            <button style={styles.signupNo} onClick={handleSignupNo}>No thanks</button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -347,5 +394,14 @@ const styles: Record<string, React.CSSProperties> = {
   placeholder: { padding: 16, color: '#888', textAlign: 'center' },
   closeBar: { borderTop: '1px solid #e5e5e5', padding: '6px 14px', background: '#fff8e1', textAlign: 'center' },
   closeBarText: { fontSize: 12, color: '#555' },
+  signupScreen:  { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', background: '#f8f9fa' },
+  signupBox:     { background: '#fff', borderRadius: 10, padding: '20px 18px', width: 280, boxShadow: '0 4px 20px rgba(0,0,0,0.2)' },
+  signupTitle:   { fontWeight: 700, fontSize: 15, marginBottom: 8 },
+  signupText:    { fontSize: 12, color: '#555', lineHeight: 1.6, marginBottom: 10 },
+  signupInput:   { width: '100%', padding: '7px 10px', fontSize: 13, border: '1px solid #ccc', borderRadius: 5, marginBottom: 14, boxSizing: 'border-box' },
+  signupBtns:    { display: 'flex', flexDirection: 'column', gap: 7 },
+  signupYes:     { display: 'block', textAlign: 'center', padding: '8px 0', fontSize: 13, background: '#34a853', color: '#fff', borderRadius: 5, textDecoration: 'none', fontWeight: 600 },
+  signupLater:   { padding: '7px 0', fontSize: 12, background: 'none', border: '1px solid #ccc', borderRadius: 5, cursor: 'pointer', color: '#555' },
+  signupNo:      { padding: '6px 0', fontSize: 11, background: 'none', border: 'none', cursor: 'pointer', color: '#aaa' },
   closeBarX: { fontWeight: 700, color: '#c62828', cursor: 'pointer' },
 };
