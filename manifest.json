@@ -11,7 +11,7 @@
     "https://api.groq.com/*",
     "https://api.anthropic.com/*",
     "https://api.openai.com/*",
-    "<all_urls>"
+    "https://*/*"
   ],
   "oauth2": {
     "client_id": "563009095152-7p2p3gv5po6ajo48vav8o7rspjs2o1bq.apps.googleusercontent.com",

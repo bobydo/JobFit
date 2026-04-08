@@ -9,6 +9,17 @@ import { compareToBaseline } from '@utils/result-comparator';
 // Mock savePromptLog — intercepts before chrome.downloads is called, captures log data
 vi.mock('@utils/prompt-logger', () => ({ savePromptLog: vi.fn() }));
 
+// Stub chrome APIs — not available in the Node/Vitest environment
+const chromeStorageData: Record<string, unknown> = {};
+(globalThis as unknown as Record<string, unknown>).chrome = {
+  storage: {
+    local: {
+      get: vi.fn((key: string) => Promise.resolve({ [key]: chromeStorageData[key] })),
+      set: vi.fn((data: Record<string, unknown>) => { Object.assign(chromeStorageData, data); return Promise.resolve(); }),
+    },
+  },
+};;
+
 // Import after mock is registered
 import { analyzePair } from './match-analyzer';
 import { savePromptLog } from '@utils/prompt-logger';

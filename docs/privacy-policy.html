@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JobFit – Privacy Policy</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; max-width: 720px; margin: 48px auto; padding: 0 24px; color: #222; line-height: 1.7; }
+    h1 { font-size: 1.8rem; margin-bottom: 4px; }
+    .date { color: #666; font-size: 0.9rem; margin-bottom: 32px; }
+    h2 { font-size: 1.1rem; margin-top: 32px; }
+    ul { padding-left: 20px; }
+    a { color: #1a73e8; }
+  </style>
+</head>
+<body>
+  <h1>JobFit Privacy Policy</h1>
+  <p class="date">Effective date: April 8, 2026</p>
+
+  <p>JobFit ("the extension") is a Chrome extension that matches your resume against job postings found in your Gmail inbox. This policy explains what data the extension accesses, how it is used, and what is never collected.</p>
+
+  <h2>1. Data the extension accesses</h2>
+  <ul>
+    <li><strong>Gmail emails</strong> — The extension reads emails you have labeled <code>resumes</code> and <code>jobposts</code> in your Gmail account. Only those labeled emails are read; no other email is accessed.</li>
+    <li><strong>Job posting pages</strong> — When a job email contains a URL, the extension may fetch the linked page to extract the full job description for analysis.</li>
+  </ul>
+
+  <h2>2. How your data is used</h2>
+  <p>Resume text and job posting text are sent to a large language model (LLM) API of your choice (Groq, OpenAI, Anthropic, or a locally-running Ollama instance) to generate a match score and summary. No other use is made of your data.</p>
+
+  <h2>3. Data storage</h2>
+  <ul>
+    <li>Analysis results are stored locally in your browser via <code>chrome.storage</code>. They are never uploaded to any server.</li>
+    <li>Optional prompt logs are saved to your local Downloads folder for your own inspection.</li>
+  </ul>
+
+  <h2>4. Account registration</h2>
+  <p>If you choose to create an account or join the waitlist, you will be directed to a Google Form where you may voluntarily submit your email address. This information is used only to contact you about JobFit updates and early access features. You may request deletion of your email at any time by contacting us via <a href="https://github.com/bobydo/JobFit/issues" target="_blank">GitHub Issues</a>. Email collection is handled by Google Forms — see <a href="https://policies.google.com/privacy" target="_blank">Google's Privacy Policy</a>.</p>
+
+  <h2>5. Data sharing</h2>
+  <p>The extension does <strong>not</strong> share your data with the developer or any third party, except for the LLM API you configure and Google Forms if you voluntarily sign up. Please review the privacy policy of your chosen LLM provider:</p>
+  <ul>
+    <li><a href="https://groq.com/privacy-policy/" target="_blank">Groq Privacy Policy</a></li>
+    <li><a href="https://openai.com/policies/privacy-policy" target="_blank">OpenAI Privacy Policy</a></li>
+    <li><a href="https://www.anthropic.com/privacy" target="_blank">Anthropic Privacy Policy</a></li>
+  </ul>
+
+  <h2>6. Data the extension never collects</h2>
+  <ul>
+    <li>No analytics, telemetry, or usage tracking of any kind.</li>
+    <li>No personal information is sent to the developer's servers.</li>
+    <li>No data is sold or used for advertising.</li>
+  </ul>
+
+  <h2>7. Permissions explained</h2>
+  <ul>
+    <li><strong>identity / gmail.readonly</strong> — Required to authenticate with Gmail and read your labeled emails.</li>
+    <li><strong>storage</strong> — Stores your settings and analysis results locally in the browser.</li>
+    <li><strong>downloads</strong> — Saves optional prompt logs to your Downloads folder.</li>
+    <li><strong>tabs / scripting / host permissions</strong> — Used to open and extract text from job posting pages linked in your emails, which may be hosted on any domain.</li>
+  </ul>
+
+  <h2>8. Contact</h2>
+  <p>If you have questions about this privacy policy, please open an issue at <a href="https://github.com/bobydo/JobFit/issues" target="_blank">github.com/bobydo/JobFit</a>.</p>
+</body>
+</html>

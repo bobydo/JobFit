@@ -26,5 +26,11 @@ chrome.runtime.onMessage.addListener(
       });
       return true;
     }
+
+    if (message.type === 'OPEN_URL') {
+      chrome.tabs.create({ url: message.url, active: true });
+      sendResponse({ ok: true });
+      return true;
+    }
   }
 );

@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { traceLlmCall } from './langfuse-tracer';
-import { LANGFUSE_BASE_URL, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY } from '../config';
+import { LANGFUSE_BASE_URL, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, DEV_MODE } from '../config';
 
 const NOW = new Date();
 const ONE_SEC_LATER = new Date(NOW.getTime() + 1000);
 
 describe('langfuse-tracer — live integration', () => {
-  it('sends a minimal trace and gets HTTP 207 from Langfuse', async () => {
+  it.skipIf(!DEV_MODE)('sends a minimal trace and gets HTTP 207 from Langfuse', async () => {
     const traceId = crypto.randomUUID();
     const result = await traceLlmCall(
       {
