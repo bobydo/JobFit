@@ -157,3 +157,22 @@ In the **Privacy practices** section of the store listing, declare:
 - [Chrome Extension Review Policy](https://developer.chrome.com/docs/webstore/review-process/)
 - [Sensitive Permissions Guide](https://developer.chrome.com/docs/webstore/permissionwarnings/)
 - [Gmail API OAuth Verification](https://support.google.com/cloud/answer/9110914)
+
+---
+
+## Check Signup Emails (Cloudflare KV)
+
+When users sign in to JobFit, their Gmail address is stored in Cloudflare KV under the **SIGNUPS** namespace.
+
+**To view signups:**
+1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com) → **Storage & databases → Workers KV**
+2. Click the **SIGNUPS** namespace
+3. Click **KV Pairs** tab
+4. Browse or search entries — each key is `{timestamp}:{email}`, value is the email address
+
+**Example entries:**
+```
+Key                                    Value
+1775693296671:test3@example.com        test3@example.com
+1775705165150:baoshenyi@gmail.com      baoshenyi@gmail.com
+```

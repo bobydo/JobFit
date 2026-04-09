@@ -1,7 +1,7 @@
 // ── Extension owner config ─────────────────────────────────────────────────
 // Edit these before building. Do not expose secrets to end users.
 
-/** Cloudflare Worker URL for JobFit Cloud token validation */
+/** Cloudflare Worker URL for JobFit Cloud token validation https://dash.cloudflare.com/e6f74de28b7ee985e010db5b9aa93162/home/overview*/
 export const WORKER_URL = 'https://jobfit-signup.baoshenyi.workers.dev';
 
 /** Stripe Payment Link — Pro plan ($11/mo, 2 resumes, 120 analyses/day) */

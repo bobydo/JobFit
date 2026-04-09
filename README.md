@@ -123,15 +123,5 @@ The Planning pattern (chaining multiple LLM calls where each step feeds the next
 | Free to run after hardware cost | Need to keep machine running |
 | Works fully offline, no rate limits | You manage everything yourself |
 
-**Cloudflare Tunnel — expose local LLM publicly:**
-1. Install: `brew install cloudflare/cloudflare/cloudflared`
-2. Login: `cloudflared tunnel login`
-3. Create tunnel: `cloudflared tunnel create jobfit`
-4. Start Ollama: `ollama serve` (default port 11434)
-5. Run tunnel: `cloudflared tunnel --url http://localhost:11434 run jobfit`
-6. Use the generated `*.trycloudflare.com` URL as your API endpoint
-- Always-on + stable
-- macOS is Unix-based → very stable for long-running services
-- Great for things like Cloudflare Tunnel (cloudflared) and local servers
 
 
