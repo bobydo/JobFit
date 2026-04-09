@@ -52,6 +52,12 @@ async function gmailFetch<T>(path: string): Promise<T> {
 
 // ─── Label API ────────────────────────────────────────────────────────────────
 
+/** Returns the Gmail address of the authenticated user. */
+export async function getGmailProfile(): Promise<string> {
+  const data = await gmailFetch<{ emailAddress: string }>('/profile');
+  return data.emailAddress ?? '';
+}
+
 /** Returns all labels in the mailbox. Used for onboarding label existence check. */
 export async function listLabels(): Promise<GmailLabel[]> {
   const data = await gmailFetch<{ labels: GmailLabel[] }>('/labels');

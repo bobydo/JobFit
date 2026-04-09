@@ -28,6 +28,7 @@ export interface AppConfig {
   // Onboarding
   settingsAcknowledged?: boolean;
   emailSignupShown?: boolean;
+  emailSignupAddress?: string;
 }
 
 const DEFAULTS: AppConfig = {
@@ -45,6 +46,7 @@ const DEFAULTS: AppConfig = {
   maxJobPosts: DEFAULT_MAX_JOB_POSTS,
   staleJobDays: DEFAULT_STALE_JOB_DAYS,
   settingsAcknowledged: false,
+  emailSignupShown: false,
 };
 
 export async function getConfig(): Promise<AppConfig> {
