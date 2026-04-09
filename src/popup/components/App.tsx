@@ -3,7 +3,7 @@ import { labelExists, getGmailProfile } from '@gmail/gmail-client';
 import { getAuthToken, removeAuthToken } from '@gmail/gmail-auth';
 import { clearCached, getAnalysisResults, saveAnalysisResults, clearAnalysisResults } from '@storage/cache-store';
 import { getConfig, saveConfig } from '@storage/config-store';
-import { analyzeUrl, analyzePair } from '@analyzer/match-analyzer';
+import { fetchJobContent, analyzePair } from '@analyzer/match-analyzer';
 import OnboardingScreen from './OnboardingScreen';
 import ResumesTab from './ResumesTab';
 import JobPostsTab from './JobPostsTab';
@@ -112,20 +112,16 @@ export default function App() {
         // Increment per URL so the counter advances as each posting is processed
         doneUrls++;
         setAnalyzeProgress({ done: doneUrls, total: totalUrls });
+        // Fetch job page ONCE for all resumes — avoids duplicate tab opens and inconsistent results
+        const page = await fetchJobContent(url).catch(() => null);
+        const jobIdMatch = url.match(/\/(\d+)\//);
+        const subject = page?.title ?? (jobIdMatch ? `${job.subject} #${jobIdMatch[1]}` : job.subject);
+        const body = page?.body ?? job.body;
+        const contentJob: JobEmail = { id: job.id, subject, body, urls: [url], date: job.date };
+
         for (const resume of activeResumes) {
           try {
-            let result: AnalysisResult | null = null;
-            try {
-              result = await analyzeUrl(resume, url, job.id, cfg);
-            } catch (err) {
-              console.warn('[JobFit] URL fetch failed:', url, err);
-            }
-            if (!result) {
-              const jobIdMatch = url.match(/\/(\d+)\//);
-              const subject = jobIdMatch ? `${job.subject} #${jobIdMatch[1]}` : job.subject;
-              const fakeJob: JobEmail = { id: job.id, subject, body: job.body, urls: [url], date: job.date };
-              result = await analyzePair(resume, fakeJob, cfg);
-            }
+            const result = await analyzePair(resume, contentJob, cfg);
             const key = `${job.id}::${url}::${resume.id}`;
             resultMap.set(key, result);
             // Save + update UI after EVERY resume-URL pair so results appear one-by-one.

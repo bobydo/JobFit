@@ -159,6 +159,18 @@ export async function analyzePair(
   };
 }
 
+/** Fetch job page content once for a URL. Handles LinkedIn /comm/ tracking URLs and login wall detection. */
+export async function fetchJobContent(url: string): Promise<{ title: string; body: string } | null> {
+  const linkedinJobId = url.match(/linkedin\.com\/comm\/jobs\/view\/(\d+)/)?.[1];
+  const fetchUrl = linkedinJobId ? `https://www.linkedin.com/jobs/view/${linkedinJobId}/` : url;
+  let page = await fetchJobPage(fetchUrl).catch(() => null);
+  if (!page) page = await fetchJobPageViaTab(fetchUrl).catch(() => null);
+  if (!page) return null;
+  const loginWall = /^(sign in|log in|login|sign up|create account)/i;
+  if (loginWall.test(page.title.trim())) return null;
+  return page;
+}
+
 // Returns null if the URL is not a real job posting page
 export async function analyzeUrl(
   resume: Resume,
@@ -166,15 +178,8 @@ export async function analyzeUrl(
   emailId: string,
   config: AppConfig
 ): Promise<AnalysisResult | null> {
-  // Convert LinkedIn email tracking URLs (/comm/jobs/view/ID) to direct job URLs
-  const linkedinJobId = url.match(/linkedin\.com\/comm\/jobs\/view\/(\d+)/)?.[1];
-  const fetchUrl = linkedinJobId ? `https://www.linkedin.com/jobs/view/${linkedinJobId}/` : url;
-
-  let page = await fetchJobPage(fetchUrl).catch(() => null);
-  if (!page) page = await fetchJobPageViaTab(fetchUrl).catch(() => null);
+  const page = await fetchJobContent(url);
   if (!page) return null;
-  const loginWall = /^(sign in|log in|login|sign up|create account)/i;
-  if (loginWall.test(page.title.trim())) return null;
   const fakeJob: JobEmail = { id: emailId, subject: page.title, body: page.body, urls: [url], date: Date.now() };
   return analyzePair(resume, fakeJob, config);
 }

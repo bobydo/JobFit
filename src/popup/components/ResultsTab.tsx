@@ -110,7 +110,6 @@ export default function ResultsTab({ results, isAnalyzing, progress, error }: Pr
     <div>
       <div style={s.toolbar}>
         <button style={s.downloadBtn} onClick={() => downloadResults(results)}>↓ Download Report</button>
-        <button style={s.downloadBtn} onClick={() => chrome.downloads.showDefaultFolder()}>📁 Log and Download folder</button>
       </div>
       {isAnalyzing && (
         <div style={s.analyzingBanner}>
