@@ -73,3 +73,4 @@ Invoke-RestMethod -Uri "https://jobfit-signup.baoshenyi.workers.dev/signup" -Met
 ```
 
 Then check KV Pairs — the email should appear within seconds.
+![Logged](image/CollectEmail/Logged.png)
