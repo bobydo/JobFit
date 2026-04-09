@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { labelExists, getGmailProfile } from '@gmail/gmail-client';
+import { getAuthToken, removeAuthToken } from '@gmail/gmail-auth';
 import { clearCached, getAnalysisResults, saveAnalysisResults, clearAnalysisResults } from '@storage/cache-store';
 import { getConfig, saveConfig } from '@storage/config-store';
 import { analyzeUrl, analyzePair } from '@analyzer/match-analyzer';
@@ -34,6 +35,7 @@ export default function App() {
   const [analyzeProgress, setAnalyzeProgress] = useState<{ done: number; total: number } | null>(null);
   // Default true to avoid a flash of the nudge on returning users; overwritten from config below
   const [settingsAcknowledged, setSettingsAcknowledged] = useState(true);
+  const [gmailEmail, setGmailEmail] = useState('');
   // True when reopened as a standalone window to keep analysis alive
   const isStandalone = new URLSearchParams(window.location.search).has('analyze');
 
@@ -47,6 +49,7 @@ export default function App() {
       setSettingsAcknowledged(cfg.settingsAcknowledged ?? false);
     });
     getAnalysisResults().then(setResultsData);
+    getGmailProfile().then((email) => { if (email) setGmailEmail(email); }).catch(() => {});
 
     // Standalone window (opened by handleAnalyze with ?analyze param):
     // reads pendingAnalysis from storage, switches to Results tab, starts analysis.
@@ -61,6 +64,17 @@ export default function App() {
       });
     }
   }, []);
+
+  async function handleSignOut() {
+    try {
+      const token = await getAuthToken(false);
+      await removeAuthToken(token);
+      await fetch(`https://accounts.google.com/o/oauth2/revoke?token=${token}`).catch(() => {});
+    } catch { /* no active token */ }
+    // Reset so email is re-collected on next sign-in
+    await saveConfig({ emailSignupShown: false, emailSignupAddress: undefined });
+    window.close();
+  }
 
   function getConfigError(cfg: Awaited<ReturnType<typeof getConfig>>): string | null {
     if (['groq', 'anthropic', 'openai'].includes(cfg.mode) && !cfg.apiKey)
@@ -268,6 +282,13 @@ export default function App() {
         {!settingsAcknowledged && !isStandalone && (
           <span style={styles.nudgeLabel}>👉 Start here</span>
         )}
+        {gmailEmail && (
+          <div style={styles.loginBadge}>
+            <span style={styles.loginDot} />
+            <span style={styles.loginEmail}>{gmailEmail.replace(/@.*/, '')}</span>
+            <button style={styles.signOutBtn} onClick={handleSignOut}>Sign out</button>
+          </div>
+        )}
         <button
           style={{
             ...styles.iconBtn,
@@ -354,6 +375,10 @@ const styles: Record<string, React.CSSProperties> = {
   iconBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 2, borderRadius: 4 },
   iconBtnPulse: { animation: 'jobfit-pulse 1.5s ease-in-out infinite', color: '#1a73e8' },
   nudgeLabel: { fontSize: 12, color: '#1a56c4', fontWeight: 600, marginLeft: 'auto', marginRight: 6 },
+  loginBadge: { display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto', marginRight: 6 },
+  loginDot:   { width: 7, height: 7, borderRadius: '50%', background: '#34a853', flexShrink: 0 } as React.CSSProperties,
+  loginEmail: { fontSize: 11, color: '#555', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as React.CSSProperties,
+  signOutBtn: { padding: '3px 8px', fontSize: 11, background: '#fce8e6', border: '1px solid #e53935', borderRadius: 3, cursor: 'pointer', color: '#c62828', fontWeight: 600 },
   tabs: { display: 'flex', borderBottom: '2px solid #e5e5e5' },
   tab: { flex: 1, padding: '8px 0', background: 'none', border: 'none', borderBottom: '3px solid transparent', cursor: 'pointer', fontSize: 13, color: '#888', marginBottom: -2 },
   tabActive: { borderBottom: '3px solid #1a73e8', color: '#1a73e8', fontWeight: 600, background: '#f0f6ff' },

@@ -7,12 +7,6 @@ export const WORKER_URL = 'https://jobfit-signup.baoshenyi.workers.dev';
 /** Stripe Payment Link — Pro plan ($11/mo, 2 resumes, 120 analyses/day) */
 export const STRIPE_PRO_URL = 'https://buy.stripe.com/YOUR_PRO_LINK';
 
-/** Google Form — user account registration / waitlist sign-up 
-1. Go to forms.google.com
-2. Find "JobFit Early Access" and click to open it in edit mode
-*/
-export const SIGNUP_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSd0Ni9nc7xpe54ejSmynQEwW2Y9OfBqJJAjvHzCOp9R_ReiVw/viewform?usp=sf_link';
-
 // ── LLM model defaults ────────────────────────────────────────────────────
 export const OLLAMA_MODEL        = 'qwen3:8b';
 export const OLLAMA_BASE_URL     = 'http://localhost:11434';

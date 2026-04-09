@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { getConfig, saveConfig, AppConfig, LLMMode, ByokProvider } from '@storage/config-store';
-import { getAuthToken, removeAuthToken } from '@gmail/gmail-auth';
 import { WORKER_URL, STRIPE_PRO_URL, OLLAMA_MODEL, OLLAMA_BASE_URL, LANGFUSE_BASE_URL, DEV_MODE } from '../../config';
 
 const BYOK_HINTS: Record<ByokProvider, string> = {
@@ -50,17 +49,6 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
     });
   }, []);
 
-  async function handleSignOut() {
-    try {
-      const token = await getAuthToken(false);
-      await removeAuthToken(token);
-      // Revoke on Google's side so re-login prompts account picker
-      await fetch(`https://accounts.google.com/o/oauth2/revoke?token=${token}`).catch(() => {});
-    } catch {
-      // No active token — nothing to do
-    }
-    window.close();
-  }
 
   function openStripe(url: string) {
     chrome.tabs.create({ url });
@@ -186,7 +174,6 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
       {/* Header */}
       <div style={s.header}>
         <span style={s.title}>Settings</span>
-        <button style={s.signOutBtn} onClick={handleSignOut}>Sign out of Gmail</button>
         <button style={s.closeBtn} onClick={onClose}>✕</button>
       </div>
 
