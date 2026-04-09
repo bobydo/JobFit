@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>JobFit Icon Generator</title>
+  <style>
+    body { font-family: sans-serif; padding: 32px; background: #f9fafb; }
+    h1 { color: #111; }
+    .icons { display: flex; gap: 48px; align-items: flex-end; flex-wrap: wrap; margin-top: 24px; }
+    .icon-block { text-align: center; }
+    canvas { display: block; margin: 0 auto 8px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    button {
+      margin-top: 8px;
+      padding: 6px 16px;
+      background: #0d9488;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    button:hover { background: #0f766e; }
+    p { color: #555; margin-top: 32px; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <h1>JobFit Icon Generator</h1>
+  <p>Click each download button, then save the files as <code>icon16.png</code>, <code>icon48.png</code>, <code>icon128.png</code> into <code>public/icons/</code>.</p>
+
+  <div class="icons">
+    <div class="icon-block">
+      <canvas id="c128" width="128" height="128"></canvas>
+      <div>128×128</div>
+      <button onclick="download('c128','icon128.png')">Download</button>
+    </div>
+    <div class="icon-block">
+      <canvas id="c48" width="48" height="48"></canvas>
+      <div>48×48</div>
+      <button onclick="download('c48','icon48.png')">Download</button>
+    </div>
+    <div class="icon-block">
+      <canvas id="c16" width="16" height="16"></canvas>
+      <div>16×16</div>
+      <button onclick="download('c16','icon16.png')">Download</button>
+    </div>
+  </div>
+
+  <script>
+    function drawIcon(canvas) {
+      const size = canvas.width;
+      const ctx = canvas.getContext('2d');
+      const radius = size * 0.22;
+
+      // Background: teal rounded square
+      ctx.beginPath();
+      ctx.moveTo(radius, 0);
+      ctx.lineTo(size - radius, 0);
+      ctx.quadraticCurveTo(size, 0, size, radius);
+      ctx.lineTo(size, size - radius);
+      ctx.quadraticCurveTo(size, size, size - radius, size);
+      ctx.lineTo(radius, size);
+      ctx.quadraticCurveTo(0, size, 0, size - radius);
+      ctx.lineTo(0, radius);
+      ctx.quadraticCurveTo(0, 0, radius, 0);
+      ctx.closePath();
+
+      // Subtle gradient
+      const grad = ctx.createLinearGradient(0, 0, size, size);
+      grad.addColorStop(0, '#14b8a6');
+      grad.addColorStop(1, '#0d9488');
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // "JF" text
+      ctx.fillStyle = 'white';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      if (size >= 48) {
+        ctx.font = `bold ${Math.round(size * 0.42)}px -apple-system, Arial, sans-serif`;
+        ctx.fillText('JF', size / 2, size / 2 + size * 0.02);
+      } else {
+        // 16px: single J at a readable size
+        ctx.font = `bold ${Math.round(size * 0.72)}px Arial, sans-serif`;
+        ctx.fillText('J', size / 2, size / 2 + size * 0.04);
+      }
+    }
+
+    function download(id, filename) {
+      const canvas = document.getElementById(id);
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    drawIcon(document.getElementById('c128'));
+    drawIcon(document.getElementById('c48'));
+    drawIcon(document.getElementById('c16'));
+  </script>
+</body>
+</html>

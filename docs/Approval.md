@@ -11,9 +11,7 @@
 ## Step 1 — Host the Privacy Policy
 
 Push `docs/privacy-policy.html` to a public URL, e.g.:
-- GitHub Pages: `https://bobydo.github.io/JobFit/privacy-policy.html`
-- Or any public web host
-
+- https://patient-smoke-b315.baoshenyi.workers.dev/privacy-policy
 ---
 
 ## Step 2 — Prepare Assets
@@ -25,13 +23,19 @@ Push `docs/privacy-policy.html` to a public URL, e.g.:
 | Icon 128×128 | PNG | Required for store listing |
 | Screenshot 1–5 | 1280×800 or 640×400 PNG/JPG | Show key UI screens |
 | Promotional tile | 440×280 PNG | Optional but recommended |
+- Vite strips the public/ prefix when copying — so public/icons/icon16.png → dist/icons/icon16.png
 
 **Suggested screenshots to capture:**
 1. Job Posts tab — showing job emails list
 2. Results tab — showing match scores for multiple jobs
 3. Settings panel — showing API key setup
 4. Results expanded — showing match summary and skills gaps
-
+![1775746546431](image/Approval/1775746546431.png)
+![1775746602842](image/Approval/1775746602842.png)
+![1775746558540](image/Approval/1775746558540.png)
+![1775746575096](image/Approval/1775746575096.png)
+![1775746640790](image/Approval/1775746640790.png)
+![1775746663582](image/Approval/1775746663582.png)
 ---
 
 ## Step 3 — Zip the Extension
@@ -39,6 +43,8 @@ Push `docs/privacy-policy.html` to a public URL, e.g.:
 ```bash
 cd dist
 zip -r ../jobfit-v0.1.0.zip .
+D:\JobFit
+D:\JobFit\dist\jobfit-v0.1.0.zip
 ```
 
 Or on Windows PowerShell:
@@ -100,14 +106,21 @@ Google will ask you to justify each sensitive permission. Use these:
 
 Because JobFit uses `gmail.readonly` scope, Google requires a **Sensitive Scope Review**. You will need to:
 
-1. Submit a **YouTube video** (unlisted) demonstrating:
+1. Submit a **YouTube video** (unlisted) demonstrating: https://youtu.be/pPRQJCrydH4
    - How the extension requests the Gmail permission
    - What it does with Gmail data (reads labeled emails only)
    - That no data is transmitted to your servers
 2. Provide a **written explanation** of why `gmail.readonly` is needed
 
 **Sample explanation:**
-> JobFit reads emails the user has labeled "resumes" and "jobposts" in their Gmail account. The extension uses the Gmail API (readonly scope) to fetch these emails locally in the browser. The email content is passed directly to the user's chosen AI provider for analysis. No email content is sent to JobFit's servers.
+> JobFit reads two sets of Gmail labels chosen by the user: "resumes" (containing the user's resume emails) and "jobposts" (containing job alert emails from keyword-based job searches on platforms such as LinkedIn, Indeed, or similar services).
+>
+> The extension uses the Gmail API (read only scope) to fetch only these labeled emails locally in the browser. The resume and job alert content is then passed directly to the user's chosen AI provider (Groq, OpenAI, Anthropic) to generate a match score and skills gap analysis for each job to help users quickly identify the best-fit roles to apply for and the skills worth developing.
+>
+> Groq API:
+> - Sign up / API key: console.groq.com
+> - API base URL: https://api.groq.com/openai/v1
+> - Free tier: yes, no credit card required
 
 ---
 
@@ -123,11 +136,18 @@ In the **Privacy practices** section of the store listing, declare:
 
 ## Step 8 — Submit for Review
 
-- Review typically takes **1–3 business days**
+- First submission typically takes **3–7 business days**
+- Due to broad host permissions (`https://*/*`), Google may flag for in-depth review — allow **up to 2 weeks**
+- You will receive an email when approved or if changes are requested
+- Extension ID: `djfaajdpdibhglnkjjpahfagkjmllopl`
 - If rejected, Google will provide a reason — common issues:
   - Missing permission justification
   - Privacy policy doesn't cover all data collected
   - Screenshots don't match the extension's actual UI
+
+### Submitted — Pending Review (April 9, 2026)
+
+![Chrome Web Store — Pending Review](image/submitted.png)
 
 ---
 
