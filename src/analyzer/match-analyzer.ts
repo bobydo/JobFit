@@ -166,9 +166,15 @@ export async function analyzeUrl(
   emailId: string,
   config: AppConfig
 ): Promise<AnalysisResult | null> {
-  let page = await fetchJobPage(url).catch(() => null);
-  if (!page) page = await fetchJobPageViaTab(url).catch(() => null);
+  // Convert LinkedIn email tracking URLs (/comm/jobs/view/ID) to direct job URLs
+  const linkedinJobId = url.match(/linkedin\.com\/comm\/jobs\/view\/(\d+)/)?.[1];
+  const fetchUrl = linkedinJobId ? `https://www.linkedin.com/jobs/view/${linkedinJobId}/` : url;
+
+  let page = await fetchJobPage(fetchUrl).catch(() => null);
+  if (!page) page = await fetchJobPageViaTab(fetchUrl).catch(() => null);
   if (!page) return null;
+  const loginWall = /^(sign in|log in|login|sign up|create account)/i;
+  if (loginWall.test(page.title.trim())) return null;
   const fakeJob: JobEmail = { id: emailId, subject: page.title, body: page.body, urls: [url], date: Date.now() };
   return analyzePair(resume, fakeJob, config);
 }
