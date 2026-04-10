@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev",
+      "type": "npm",
+      "script": "dev",
+      "isBackground": true,
+      "problemMatcher": []
+    },
+    {
+      "label": "launch-chrome",
+      "type": "process",
+      "command": "C:/Program Files/Google/Chrome/Application/chrome.exe",
+      "args": [
+        "--remote-debugging-port=9222",
+        "--profile-directory=Profile 2",
+        "--disable-extensions-except=${workspaceFolder}/dist",
+        "--load-extension=${workspaceFolder}/dist",
+        "https://mail.google.com"
+      ],
+      "presentation": { "reveal": "never" }
+    }
+  ]
+}

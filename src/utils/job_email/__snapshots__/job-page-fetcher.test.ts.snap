@@ -1,0 +1,12 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`extractCandidateUrls > snapshot of extracted URLs from LinkedIn alert email 1`] = `
+[
+  "/comm/jobs/view/4397185861/",
+  "/comm/jobs/view/4396595654/",
+  "/comm/jobs/view/4383972019/",
+  "/comm/jobs/view/4384386944/",
+  "/comm/jobs/view/4372626306/",
+  "/comm/jobs/view/4397528264/",
+]
+`;

@@ -1,5 +1,5 @@
 import { llmChat } from '../llm/llm-router';
-import { fetchJobPage, fetchJobPageViaTab } from '@utils/job-page-fetcher';
+import { fetchJobPage, fetchJobPageViaTab } from '@utils/job_email/job-page-fetcher';
 import { savePromptLog } from '@utils/prompt-logger';
 import { traceLlmCall } from '@utils/langfuse-tracer';
 import {
@@ -82,6 +82,7 @@ export async function analyzePair(
   config: AppConfig
 ): Promise<AnalysisResult> {
   const systemMessage = { role: 'system' as const, content: 'You are a professional career advisor. Evaluate how well a candidate\'s resume matches a job posting. Be concise and honest.' };
+  console.log(`Building prompt for resume-job analysis... resume => ${resume.subject}, job => ${job.subject}`);
   const userMessage = { role: 'user' as const, content: buildPrompt(resume, job) };
   const messages = [systemMessage, userMessage];
 

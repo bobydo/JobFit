@@ -1,13 +1,24 @@
 import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 import webExtension from 'vite-plugin-web-extension';
 import path from 'path';
 
 export default defineConfig({
   plugins: [
+    react(),
     webExtension({
       manifest: 'manifest.json',
-    }),
+      watchFilePaths: ['src/**/*'],
+      disableAutoLaunch: true
+    })
   ],
+
+  build: {
+    sourcemap: true,
+    outDir: 'dist',
+    emptyOutDir: true
+  },
+
   resolve: {
     alias: {
       '@gmail': path.resolve(__dirname, 'src/gmail'),

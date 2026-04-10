@@ -1,0 +1,30 @@
+ATS,Pattern,Example URL
+LinkedIn,linkedin.com,https://www.linkedin.com/jobs/view/1234567890/
+LinkedIn,linkedin.com,https://www.linkedin.com/jobs/view/software-engineer-at-google-1234567890
+Indeed,indeed.com,https://ca.indeed.com/viewjob?jk=abcdef123456
+Indeed,indeed.com,https://www.indeed.com/viewjob?jk=12345abcde&from=shareddesktop
+Workday,*.myworkdayjobs.com,https://wd3.myworkdayjobs.com/en-US/Company/job/City/Software-Engineer_R12345
+Workday,*.myworkdayjobs.com,https://company.wd1.myworkdayjobs.com/job/USA/DevOps-Engineer_R98765
+Greenhouse,*.greenhouse.io,https://boards.greenhouse.io/stripe/jobs/1234567
+Greenhouse,*.greenhouse.io,https://boards.greenhouse.io/airbnb/jobs/7654321?gh_jid=7654321
+Lever,jobs.lever.co,https://jobs.lever.co/netflix/abc12345-6789-0000-1111-abcdef123456
+Lever,jobs.lever.co,https://jobs.lever.co/shopify/xyz98765
+iCIMS,*.icims.com,https://careers.company.icims.com/jobs/1234/software-engineer/job
+iCIMS,*.icims.com,https://company.icims.com/jobs/5678/job
+Taleo,*.taleo.net,https://company.taleo.net/careersection/jobdetail.ftl?job=12345
+Taleo,*.taleo.net,https://company.taleo.net/careersection/2/jobdetail.ftl?job=67890
+BambooHR,*.bamboohr.com,https://company.bamboohr.com/jobs/view.php?id=123
+BambooHR,*.bamboohr.com,https://company.bamboohr.com/careers/456
+SmartRecruiters,jobs.smartrecruiters.com,https://jobs.smartrecruiters.com/Spotify/123456-software-engineer
+SmartRecruiters,jobs.smartrecruiters.com,https://jobs.smartrecruiters.com/Amazon/654321-data-engineer
+Ashby,jobs.ashbyhq.com,https://jobs.ashbyhq.com/notion/abcd1234-5678-90ef-ghij-klmnopqrst
+Ashby,jobs.ashbyhq.com,https://jobs.ashbyhq.com/figma/xyz98765
+Jobvite,jobs.jobvite.com,https://jobs.jobvite.com/pinterest/job/o1234567
+Jobvite,jobs.jobvite.com,https://jobs.jobvite.com/tesla/job/o7654321
+SuccessFactors,jobs.sap.com / successfactors,https://jobs.sap.com/job/Vancouver-Developer/1234567/
+SuccessFactors,jobs.sap.com / successfactors,https://career5.successfactors.eu/career?job=890123
+Oracle Cloud,oraclecloud.com,https://oraclecloud.com/careers/job/12345
+JazzHR,applytojob.com,https://applytojob.com/apply/abc123/software-engineer
+Paylocity,recruiting.paylocity.com,https://recruiting.paylocity.com/recruiting/jobs/Details/123456
+ADP,workforcenow.adp.com,https://workforcenow.adp.com/mascsr/default/mdf/recruitment/recruitment.html?jobId=123456
+UKG (UltiPro),recruiting.ultipro.com,https://recruiting.ultipro.com/COMPANY/JobBoard/12345

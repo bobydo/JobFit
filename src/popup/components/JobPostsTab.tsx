@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { listMessages, getMessage, getSubject, getPlainTextBody, getBodyForUrlExtraction, getInternalDate } from '@gmail/gmail-client';
 import { getCached, setCached, getProcessedIds, markProcessed } from '@storage/cache-store';
 import { getConfig } from '@storage/config-store';
-import { extractCandidateUrls } from '@utils/job-page-fetcher';
+import { extractCandidateUrls } from '@utils/job_email/job-page-fetcher';
 import type { JobEmail } from '../types';
 
 function formatDate(date: Date): string {
