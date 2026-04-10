@@ -1,18 +1,37 @@
 # Chrome Extension Debug Setup
 
-## How it works
+## Key discovery (2026-04-10)
+
+**Problem:** `vite-plugin-web-extension` was silently opening Chrome with a temp profile
+(`C:\Users\baosh\AppData\Local\Temp\tmp-web-ext-*`) before VS Code could launch it.
+This meant VS Code's `pwa-chrome` was attaching to the wrong Chrome instance — a fresh
+anonymous profile with no Gmail sign-in and no real extension context.
+
+**Fix:** Added `disableAutoLaunch: true` to `vite.config.ts` so the plugin only builds/watches
+and never opens Chrome. VS Code's F5 is now the only thing that launches Chrome.
+
+**Remaining issue (unresolved):** Chrome 127+ blocks `--remote-debugging-port=9222` when
+using a real user profile. Attach mode (port 9222) does not work. Launch mode with
+`pwa-chrome` opens Chrome with Profile 2 and Gmail signed in, but VS Code shows
+"Unable to attach to browser." Next session: investigate why `pwa-chrome` debug pipe
+fails with real profile, OR revert to `.vscode/chrome` custom profile + handle Gmail
+auth through the extension's own `chrome.identity` OAuth popup (does not need Gmail
+web session).
+
+---
+
+## How it works (current config)
 
 - VS Code launches Chrome via `pwa-chrome` (launch mode)
 - Chrome loads the extension from `dist/` and opens Gmail
-- Uses your real Chrome Profile 2 (`baoshenyi@gmail.com`) — already signed in
-- `vite-plugin-web-extension` watches and rebuilds `dist/` on save (does NOT open browser)
+- Uses real Chrome Profile 2 (`baoshenyi@gmail.com`) — Gmail signed in
+- `vite-plugin-web-extension` watches/rebuilds `dist/` only — does NOT open browser
 
 ---
 
 ## Daily workflow
 
 ### 1. Close Chrome completely
-Chrome and VS Code cannot share the same profile simultaneously.
 ```powershell
 Get-Process chrome | Stop-Process -Force
 ```
@@ -24,7 +43,6 @@ cd D:\JobFit; npm run dev
 Wait for "Wrote manifest.json" before continuing.
 
 ### 3. Press F5 in VS Code
-Chrome opens with Profile 2 signed into Gmail + extension loaded.
 
 ---
 
@@ -90,3 +108,6 @@ Your regular Chrome is open. Close it before pressing F5, or click "Debug Anyway
 
 ### "Unable to attach to browser"
 Chrome wasn't fully closed. Run `Get-Process chrome | Stop-Process -Force` then F5 again.
+
+### Port 9222 not listening
+Chrome 127+ blocks `--remote-debugging-port` with real user profiles. Attach mode won't work.
