@@ -1,5 +1,38 @@
 # Chrome Extension Debug Setup
 
+## Debug
+
+**DevTools is the recommended way.** VS Code F5 debugging is optional and complex (see Key Discovery section below).
+
+### Popup code (e.g. `job-url-parsers.ts`, `match-analyzer.ts`, anything imported by `App.tsx`)
+
+1. Open JobFit popup
+2. Right-click anywhere in the popup → **Inspect**
+3. In the DevTools window → **Sources** tab
+4. Press **Ctrl+P** → type the filename (e.g. `job-url-parsers`) → select the **italic** entry
+5. Click a line number to set a breakpoint
+
+Replace step 4
+you could drilling down from localhost
+![1775919162816](image/Debug/1775919162816.png)
+
+### Service worker code (e.g. `service-worker.ts`)
+
+1. Go to `chrome://extensions`
+2. Find JobFit → click **"Inspect service worker"** (opens a separate DevTools window)
+3. **Sources** tab → **Ctrl+P** → type the filename → select the **italic** entry
+4. Click a line number to set a breakpoint
+5. Trigger the code (e.g. run an analysis from the popup) — execution will pause here
+
+### Why each file appears twice in the Sources tree
+
+- **Italic** = raw TypeScript served by Vite dev server (`localhost:5173`) — use this for breakpoints, line numbers match your source
+- **Regular** = compiled JS bundled into the extension (`chrome-extension://...`) — line numbers won't match, avoid for breakpoints
+
+Vite bundles your TS into `dist/` for the extension, but also serves the original `.ts` files over its local dev server so Chrome can resolve source maps. DevTools shows both.
+
+
+
 ## Key discovery (2026-04-10)
 
 **Problem:** `vite-plugin-web-extension` was silently opening Chrome with a temp profile
@@ -18,17 +51,6 @@ fails with real profile, OR revert to `.vscode/chrome` custom profile + handle G
 auth through the extension's own `chrome.identity` OAuth popup (does not need Gmail
 web session).
 
----
-
-## How it works (current config)
-
-- VS Code launches Chrome via `pwa-chrome` (launch mode)
-- Chrome loads the extension from `dist/` and opens Gmail
-- Uses real Chrome Profile 2 (`baoshenyi@gmail.com`) — Gmail signed in
-- `vite-plugin-web-extension` watches/rebuilds `dist/` only — does NOT open browser
-
----
-
 ## Daily workflow
 
 ### 1. Close Chrome completely
@@ -40,74 +62,6 @@ Get-Process chrome | Stop-Process -Force
 ```powershell
 cd D:\JobFit; npm run dev
 ```
-Wait for "Wrote manifest.json" before continuing.
 
-### 3. Press F5 in VS Code
-
----
-
-## VS Code config
-
-### `.vscode/launch.json`
-```json
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Launch Chrome",
-      "type": "pwa-chrome",
-      "request": "launch",
-      "url": "https://mail.google.com",
-      "webRoot": "${workspaceFolder}/src",
-      "runtimeExecutable": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
-      "userDataDir": "C:\\Users\\baosh\\AppData\\Local\\Google\\Chrome\\User Data",
-      "runtimeArgs": [
-        "--profile-directory=Profile 2",
-        "--disable-extensions-except=${workspaceFolder}/dist",
-        "--load-extension=${workspaceFolder}/dist"
-      ]
-    }
-  ]
-}
-```
-
-### `vite.config.ts` (key setting)
-```ts
-webExtension({
-  manifest: 'manifest.json',
-  watchFilePaths: ['src/**/*'],
-  disableAutoLaunch: true   // prevents plugin from opening Chrome with temp profile
-})
-```
-
----
-
-## Where to set breakpoints
-
-| Target | How |
-|---|---|
-| Popup UI | Right-click extension icon → Inspect |
-| Content scripts | F12 → Sources tab on target page |
-| Background service worker | `chrome://extensions` → Inspect service worker |
-
----
-
-## Reload extension after rebuild
-
-Vite watch mode updates `dist/` automatically. If changes don't appear:
-```
-chrome://extensions → click Reload
-```
-
----
-
-## Known issues
-
-### "It looks like a browser is already running from the configured userDataDir"
-Your regular Chrome is open. Close it before pressing F5, or click "Debug Anyway".
-
-### "Unable to attach to browser"
-Chrome wasn't fully closed. Run `Get-Process chrome | Stop-Process -Force` then F5 again.
-
-### Port 9222 not listening
-Chrome 127+ blocks `--remote-debugging-port` with real user profiles. Attach mode won't work.
+## Solve issue later
+![1775919285240](image/Debug/1775919285240.png)
