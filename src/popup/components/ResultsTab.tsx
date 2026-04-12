@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import type { AnalysisResult } from '../types';
+import { resultsStyles as s } from './shared.styles';
+import ScoreBadge from './lessChange/ScoreBadge';
 
 interface Props {
   results: AnalysisResult[];
@@ -63,15 +65,6 @@ function downloadResults(results: AnalysisResult[]) {
   });
 }
 
-function ScoreBadge({ score }: { score: number }) {
-  const color = score >= 70 ? '#2e7d32' : score >= 40 ? '#e65100' : '#c62828';
-  const bg = score >= 70 ? '#e8f5e9' : score >= 40 ? '#fff3e0' : '#ffebee';
-  return (
-    <span style={{ ...s.badge, color, background: bg }}>
-      {score}%
-    </span>
-  );
-}
 
 export default function ResultsTab({ results, isAnalyzing, progress, error }: Props) {
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
@@ -126,7 +119,7 @@ export default function ResultsTab({ results, isAnalyzing, progress, error }: Pr
             const key = `${r.jobUrl || r.jobEmailId}::${r.resumeId}`;
             const expanded = expandedKey === key;
             return (
-              <div key={key} style={s.resultCard}>
+              <div key={key} style={s.card}>
                 <div style={s.cardHeader} onClick={() => setExpandedKey(expanded ? null : key)}>
                   <ScoreBadge score={r.matchScore} />
                   <span style={s.resumeName}>
@@ -173,49 +166,3 @@ export default function ResultsTab({ results, isAnalyzing, progress, error }: Pr
   );
 }
 
-const s: Record<string, React.CSSProperties> = {
-  center: { color: '#888', textAlign: 'center', paddingTop: 40, lineHeight: 1.8 },
-  hint: { fontSize: 12, color: '#aaa' },
-  toolbar: { display: 'flex', justifyContent: 'flex-end', marginBottom: 8 },
-  downloadBtn: {
-    background: 'none', border: '1px solid #ccc', borderRadius: 5,
-    padding: '3px 10px', fontSize: 12, color: '#555', cursor: 'pointer',
-  },
-  analyzingBanner: {
-    background: '#fff3e0', border: '1px solid #ffcc80', borderRadius: 6,
-    padding: '6px 10px', marginBottom: 8, fontSize: 11, color: '#e65100', fontWeight: 600,
-  },
-  errorBanner: {
-    background: '#ffebee', border: '1px solid #f9a8a8', borderRadius: 6,
-    padding: '6px 10px', marginBottom: 8, fontSize: 11, color: '#c62828',
-  },
-  jobGroup: { marginBottom: 12 },
-  jobTitle: {
-    fontSize: 12, fontWeight: 700, color: '#555',
-    marginBottom: 4, paddingLeft: 2,
-    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-  },
-  resultCard: { border: '1px solid #e5e5e5', borderRadius: 8, marginBottom: 6, overflow: 'hidden' },
-  cardHeader: {
-    display: 'flex', alignItems: 'center', gap: 8,
-    padding: '8px 10px', cursor: 'pointer',
-  },
-  badge: {
-    fontSize: 12, fontWeight: 700, padding: '2px 7px',
-    borderRadius: 10, flexShrink: 0,
-  },
-  resumeName: {
-    flex: 1, fontSize: 13, color: '#333', fontWeight: 500,
-    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-    display: 'flex', alignItems: 'baseline', gap: 5,
-  },
-  jobTag: { fontSize: 11, color: '#888', fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  chevron: { fontSize: 10, color: '#aaa', flexShrink: 0 },
-  cardBody: { borderTop: '1px solid #f0f0f0', padding: '8px 12px 10px', background: '#fafafa' },
-  summary: { fontSize: 12, color: '#444', lineHeight: 1.6, margin: '0 0 8px' },
-  gapsLabel: { fontSize: 11, fontWeight: 700, color: '#888', marginBottom: 4 },
-  gapsList: { margin: '0 0 6px', paddingLeft: 18 },
-  gapsItem: { fontSize: 12, color: '#555', lineHeight: 1.6 },
-  analyzedAt: { fontSize: 10, color: '#bbb', marginTop: 6 },
-  jobLink: { display: 'inline-block', fontSize: 11, color: '#1a73e8', marginBottom: 8, textDecoration: 'none' },
-};

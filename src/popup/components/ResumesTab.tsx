@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { listMessages, getMessage, getSubject, getPlainTextBody } from '@gmail/gmail-client';
 import { getCached, setCached } from '@storage/cache-store';
 import type { Resume } from '../types';
+import { resumesStyles as s } from './shared.styles';
 
 interface Props {
   activeResumeIds: string[];
@@ -102,7 +103,7 @@ export default function ResumesTab({ activeResumeIds, onToggle, onInitIds, cache
               </button>
             </div>
             {isExpanded && (
-              <pre style={s.body}>{r.body || '(empty body)'}</pre>
+              <pre style={s.cardBody}>{r.body || '(empty body)'}</pre>
             )}
           </div>
         );
@@ -111,25 +112,3 @@ export default function ResumesTab({ activeResumeIds, onToggle, onInitIds, cache
   );
 }
 
-const s: Record<string, React.CSSProperties> = {
-  center: { color: '#888', textAlign: 'center', paddingTop: 40 },
-  empty: { textAlign: 'center', paddingTop: 32, color: '#555', lineHeight: 1.6 },
-  hint: { fontSize: 12, color: '#1a73e8', fontWeight: 600, marginBottom: 8 },
-  card: { border: '1px solid #e5e5e5', borderRadius: 8, marginBottom: 8, overflow: 'hidden' },
-  cardChecked: { borderColor: '#1a73e8', background: '#f8fbff' },
-  cardHeader: { display: 'flex', alignItems: 'center', padding: '8px 10px', gap: 6 },
-  label: { flex: 1, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' },
-  checkbox: { width: 15, height: 15, accentColor: '#1a73e8', flexShrink: 0, cursor: 'pointer' },
-  subject: { fontSize: 13, color: '#333', fontWeight: 500 },
-  subjectChecked: { color: '#1a73e8' },
-  expandBtn: {
-    background: 'none', border: 'none', cursor: 'pointer',
-    fontSize: 11, color: '#888', padding: '2px 6px', flexShrink: 0,
-  },
-  body: {
-    margin: 0, padding: '8px 12px 12px', fontSize: 11, lineHeight: 1.5,
-    color: '#444', whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-    maxHeight: 180, overflowY: 'auto',
-    borderTop: '1px solid #f0f0f0', background: '#fafafa',
-  },
-};

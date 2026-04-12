@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
-import { isKnownJobUrl } from './job-url-parsers';
+import { isKnownJobUrl, JOB_SITE_PARSERS } from './job-url-parsers';
 
 // Load CSV: ATS,Pattern,Example URL
 const CSV_PATH = resolve(__dirname, '../../test_data/job_url_test_dataset.csv');
@@ -49,5 +49,34 @@ describe('isKnownJobUrl — CSV invalid URL tests (must reject)', () => {
     it(`rejects ${ats} (${reason}): ${url}`, () => {
       expect(isKnownJobUrl(url)).toBe(false);
     });
+  });
+});
+
+// ── Indeed URL variants (from indeedJobUrl.html) ────────────────────────────
+const INDEED_HTML_PATH = resolve(__dirname, '../../test_data/indeedJobUrl.html');
+const indeedHtml = readFileSync(INDEED_HTML_PATH, 'utf-8');
+
+// Extract href URL and normalise &amp; → & (mirrors extractCandidateUrls behaviour)
+const hrefMatch = indeedHtml.match(/href="(https:\/\/apply\.indeed\.com[^"]+)"/);
+const applyUrl  = hrefMatch![1].replace(/&amp;/g, '&');
+
+// Extract data-saferedirecturl (the Google redirect wrapper)
+const safeMatch = indeedHtml.match(/data-saferedirecturl="(https:\/\/www\.google\.com[^"]+)"/);
+const googleUrl = safeMatch![1].replace(/&amp;/g, '&');
+
+const indeedParser = JOB_SITE_PARSERS['indeed.com'];
+
+describe('indeed.com parser — returns job ID (from indeedJobUrl.html)', () => {
+  it('extracts jk from apply.indeed.com via ?next= redirect', () => {
+    console.log('Testing URL:', applyUrl);
+    expect(indeedParser(new URL(applyUrl))).toBe('5a27122fc2cab829');
+  });
+
+  it('returns null for google.com safe-redirect wrapper', () => {
+    expect(indeedParser(new URL(googleUrl))).toBeNull();
+  });
+
+  it('returns null for apply.indeed.com with no next param', () => {
+    expect(indeedParser(new URL('https://apply.indeed.com/indeedapply/form?iaUid=123'))).toBeNull();
   });
 });

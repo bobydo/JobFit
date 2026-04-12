@@ -11,6 +11,7 @@ import ResultsTab from './ResultsTab';
 import SettingsPanel from './SettingsPanel';
 import type { Resume, JobEmail, AnalysisResult } from '../types';
 import { ANALYSIS_POPUP_WIDTH, ANALYSIS_POPUP_HEIGHT, ANALYSIS_POPUP_MARGIN, WORKER_URL } from '../../config';
+import { shared } from './shared.styles';
 
 type Tab = 'resumes' | 'jobposts' | 'results';
 
@@ -168,6 +169,18 @@ export default function App() {
     //
     // If you remove window.close(), move the logic inline, or skip the ?analyze
     // param, the Results tab switch and/or the stay-open behavior will break.
+    // Reuse existing analysis window if still open
+    const currentWin = await chrome.windows.getCurrent();
+    const { analysisWindowId } = await chrome.storage.local.get('analysisWindowId') as { analysisWindowId?: number };
+    if (analysisWindowId && analysisWindowId !== currentWin.id) {
+      try {
+        await chrome.windows.get(analysisWindowId);           // throws if window was closed
+        chrome.windows.update(analysisWindowId, { focused: true });
+        return;
+      } catch {
+        // window was closed by user — fall through to create a new one
+      }
+    }
     await new Promise<void>((resolve) =>
       chrome.storage.local.set({ pendingAnalysis: { selectedJobs, resumes: activeResumes } }, resolve)
     );
@@ -176,7 +189,10 @@ export default function App() {
     // doesn't overlap the analysis window.
     const left = window.screen.availWidth - ANALYSIS_POPUP_WIDTH - ANALYSIS_POPUP_MARGIN;
     const top = Math.round((window.screen.availHeight - ANALYSIS_POPUP_HEIGHT) / 2);
-    chrome.windows.create({ url: popupUrl, type: 'popup', width: ANALYSIS_POPUP_WIDTH, height: ANALYSIS_POPUP_HEIGHT, left, top });
+    const win = await new Promise<chrome.windows.Window>((resolve) =>
+      chrome.windows.create({ url: popupUrl, type: 'popup', width: ANALYSIS_POPUP_WIDTH, height: ANALYSIS_POPUP_HEIGHT, left, top }, (w) => resolve(w!))
+    );
+    await new Promise<void>((resolve) => chrome.storage.local.set({ analysisWindowId: win.id }, resolve));
     window.close();
   }
 
@@ -366,7 +382,7 @@ export default function App() {
 const styles: Record<string, React.CSSProperties> = {
   container: { display: 'flex', flexDirection: 'column', height: '100%' },
   center: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 200, padding: 16, textAlign: 'center' },
-  header: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderBottom: '1px solid #e5e5e5' },
+  header: shared.panelHeader,
   logo: { fontWeight: 700, fontSize: 16 },
   iconBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 2, borderRadius: 4 },
   iconBtnPulse: { animation: 'jobfit-pulse 1.5s ease-in-out infinite', color: '#1a73e8' },
@@ -374,7 +390,7 @@ const styles: Record<string, React.CSSProperties> = {
   loginBadge: { display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto', marginRight: 6 },
   loginDot:   { width: 7, height: 7, borderRadius: '50%', background: '#34a853', flexShrink: 0 } as React.CSSProperties,
   loginEmail: { fontSize: 11, color: '#555', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as React.CSSProperties,
-  signOutBtn: { padding: '3px 8px', fontSize: 11, background: '#fce8e6', border: '1px solid #e53935', borderRadius: 3, cursor: 'pointer', color: '#c62828', fontWeight: 600 },
+  signOutBtn: { ...shared.dangerBtn, padding: '4px 10px' },
   tabs: { display: 'flex', borderBottom: '2px solid #e5e5e5' },
   tab: { flex: 1, padding: '8px 0', background: 'none', border: 'none', borderBottom: '3px solid transparent', cursor: 'pointer', fontSize: 13, color: '#888', marginBottom: -2 },
   tabActive: { borderBottom: '3px solid #1a73e8', color: '#1a73e8', fontWeight: 600, background: '#f0f6ff' },

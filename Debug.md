@@ -65,3 +65,17 @@ cd D:\JobFit; npm run dev
 
 ## Solve issue later
 ![1775919285240](image/Debug/1775919285240.png)
+
+## Popup behavior
+
+- **On the first click** of **“Analyze Selected”**:
+  - Open the popup because:
+    - Results disappear if the user clicks outside the extension
+    - LLM takes time → needs a persistent UI
+
+- **After the popup is opened**:
+  - Do **NOT** open a new popup again
+  - Reuse the **existing popup**
+  - Keep the user inside that popup for all future actions
+
+

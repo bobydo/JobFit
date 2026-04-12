@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getConfig, saveConfig, AppConfig, LLMMode, ByokProvider } from '@storage/config-store';
 import { WORKER_URL, STRIPE_PRO_URL, OLLAMA_MODEL, OLLAMA_BASE_URL, LANGFUSE_BASE_URL, DEV_MODE } from '../../config';
+import { settingsPanelStyles as s } from './shared.styles';
 
 const BYOK_HINTS: Record<ByokProvider, string> = {
   groq:      'Get a free key at console.groq.com → API Keys. Free tier covers ~14,400 req/day.',
@@ -172,7 +173,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   return (
     <div style={s.wrap}>
       {/* Header */}
-      <div style={s.header}>
+      <div style={s.panelHeader}>
         <span style={s.title}>Settings</span>
         <button style={s.closeBtn} onClick={onClose}>✕</button>
       </div>
@@ -395,46 +396,3 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-const s: Record<string, React.CSSProperties> = {
-  wrap:         { display: 'flex', flexDirection: 'column', height: '100%' },
-  loading:      { padding: 16, color: '#888' },
-  header:       { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderBottom: '1px solid #e5e5e5' },
-  title:        { fontWeight: 700, fontSize: 15 },
-  signOutBtn:   { padding: '4px 10px', fontSize: 11, background: '#fce8e6', border: '1px solid #e53935', borderRadius: 4, cursor: 'pointer', color: '#c62828', fontWeight: 600, marginLeft: 'auto', marginRight: 6 },
-  closeBtn:     { background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#555' },
-  body:         { flex: 1, overflowY: 'auto', padding: '12px 14px' },
-  section:      { marginBottom: 20 },
-  sectionLabel: { fontWeight: 600, fontSize: 13, marginBottom: 8, color: '#222' },
-  radioRow:     { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, cursor: 'pointer' },
-  radioLabel:   { fontSize: 13 },
-  indent:       { marginLeft: 20, marginTop: 6, marginBottom: 8 },
-  fieldLabel:   { fontSize: 12, color: '#555', marginTop: 8, marginBottom: 4 },
-  fieldHint:    { fontSize: 11, color: '#aaa', fontWeight: 400 },
-  hint:         { fontSize: 11, color: '#888', marginBottom: 6 },
-  row:          { display: 'flex', gap: 6, alignItems: 'center' },
-  input:        { flex: 1, padding: '5px 8px', fontSize: 12, border: '1px solid #ccc', borderRadius: 4 },
-  select:       { padding: '5px 8px', fontSize: 12, border: '1px solid #ccc', borderRadius: 4 },
-  saveBtn:      { padding: '5px 10px', fontSize: 12, background: '#1a73e8', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' },
-  eyeBtn:       { background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, padding: '0 4px' },
-  ok:           { fontSize: 11, color: '#2e7d32', marginTop: 4 },
-  err:          { fontSize: 11, color: '#c62828', marginTop: 4 },
-  waiverBox:    { fontSize: 10, color: '#888', border: '1px solid #e0e0e0', borderRadius: 4, padding: '6px 8px', marginTop: 8, lineHeight: 1.5 },
-  devBadge:     { fontSize: 9, fontWeight: 700, color: '#fff', background: '#2e7d32', borderRadius: 3, padding: '1px 5px', marginLeft: 4, verticalAlign: 'middle' },
-  planRow:      { display: 'flex', gap: 8, marginBottom: 10 },
-  planCard:     { flex: 1, border: '1px solid #e0e0e0', borderRadius: 6, padding: '8px 10px' },
-  planCardPro:  { borderColor: '#1a73e8' },
-  planName:     { fontWeight: 700, fontSize: 13, marginBottom: 2 },
-  planPrice:    { fontSize: 18, fontWeight: 700, color: '#1a73e8' },
-  planPer:      { fontSize: 12, fontWeight: 400, color: '#888' },
-  planDetail:   { fontSize: 11, color: '#666', margin: '4px 0 8px' },
-  subscribeBtn: { width: '100%', padding: '5px 0', fontSize: 12, background: '#f1f3f4', color: '#1a73e8', border: '1px solid #1a73e8', borderRadius: 4, cursor: 'pointer' },
-  subscribeBtnPro: { background: '#1a73e8', color: '#fff' },
-  accountBtn:   { display: 'inline-block', padding: '7px 14px', fontSize: 12, background: '#34a853', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', marginTop: 6, textDecoration: 'none' },
-  modal:        { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 },
-  modalBox:     { background: '#fff', borderRadius: 8, padding: 20, maxWidth: 340, margin: '0 16px' },
-  modalTitle:   { fontWeight: 700, fontSize: 14, marginBottom: 10 },
-  modalText:    { fontSize: 12, color: '#444', lineHeight: 1.6, marginBottom: 16 },
-  modalBtns:    { display: 'flex', gap: 8, justifyContent: 'flex-end' },
-  modalCancel:  { padding: '6px 12px', fontSize: 12, background: 'none', border: '1px solid #ccc', borderRadius: 4, cursor: 'pointer' },
-  modalOk:      { padding: '6px 12px', fontSize: 12, background: '#1a73e8', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' },
-};

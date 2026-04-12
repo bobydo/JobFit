@@ -14,9 +14,37 @@ function on(domain: string, hostname: string): boolean {
  */
 export const JOB_SITE_PARSERS: Record<string, (url: URL) => string | null> = {
   // ── Job boards ──────────────────────────────────────────────────────────
-  'indeed.com':          (url) => url.searchParams.get('jk'),
+  'indeed.com': (url) => {
+  // apply.indeed.com wraps the real listing in a ?next= redirect param
+    try {
+      // Only handle indeed domains
+      if (!url.hostname.includes('indeed.com')) return null;
+
+      // 1. Direct jk (most common)
+      const jk = url.searchParams.get('jk');
+      if (jk) return jk;
+
+      // 2. Nested in `next`
+      const next = url.searchParams.get('next');
+      if (next) {
+        try {
+          const decoded = next.startsWith('http')
+            ? next
+            : decodeURIComponent(next);
+          const nested = new URL(decoded);
+          console.log(`[indeed.com parser] nested URL: ${nested.href}`);
+          return nested.searchParams.get('jk');
+        } catch {}
+      }
+      // 3. Nothing found
+      return null;
+    } catch {
+      return null;
+    }
+  },
   'linkedin.com':        (url) => {
     const m = url.pathname.match(/\/jobs\/view\/(?:[\w-]+-)?(\d+)/);
+    console.log(`[linkedin.com parser] URL: ${url.href}, match: ${m?.[1]}`);
     return m?.[1] ?? null;
   },
   'glassdoor.com':       (_url) => 'accept',

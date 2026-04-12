@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { listMessages, getMessage, getSubject, getPlainTextBody, getBodyForUrlExtraction, getInternalDate } from '@gmail/gmail-client';
+import { listMessages, getMessage, getSubject, getPlainTextBody, getBodyForUrlExtraction, getInternalDate, MessageStub } from '@gmail/gmail-client';
 import { getCached, setCached, getProcessedIds, markProcessed } from '@storage/cache-store';
 import { getConfig } from '@storage/config-store';
 import { extractCandidateUrls } from '@utils/job_email/job-page-fetcher';
 import type { JobEmail } from '../types';
+import { jobPostsStyles as s } from './shared.styles';
 
 function formatDate(date: Date): string {
   const todayStr = new Date().toDateString();
@@ -49,7 +50,7 @@ export default function JobPostsTab({ cachedData, onDataLoaded, onAnalyze, isAna
       }
       const { maxJobPosts } = await getConfig();
       const stubs = await listMessages('jobposts', maxJobPosts);
-      const messages = await Promise.all(stubs.map((s) => getMessage(s.id)));
+      const messages: Awaited<ReturnType<typeof getMessage>>[] = await fetchInBatches(stubs);
       const loaded: JobEmail[] = messages.map((msg) => {
         const body = getPlainTextBody(msg);
         return {
@@ -66,6 +67,20 @@ export default function JobPostsTab({ cachedData, onDataLoaded, onAnalyze, isAna
       setError(err instanceof Error ? err.message : String(err));
       setStatus('error');
     }
+  }
+
+  /*
+  Promise.all fires all Gmail API requests simultaneously
+  if you have 20 job posts, it sends 20 concurrent requests at once. 
+  Gmail's API rate limit is per-user concurrent requests, so it throws 429.
+  */
+  async function fetchInBatches(stubs: MessageStub[]) {
+    const messages: Awaited<ReturnType<typeof getMessage>>[] = [];
+    for (let i = 0; i < stubs.length; i += 5) {
+      const batch = await Promise.all(stubs.slice(i, i + 5).map((s) => getMessage(s.id)));
+      messages.push(...batch);
+    }
+    return messages;
   }
 
   function apply(data: JobEmail[]) {
@@ -200,46 +215,3 @@ export default function JobPostsTab({ cachedData, onDataLoaded, onAnalyze, isAna
   );
 }
 
-const s: Record<string, React.CSSProperties> = {
-  center: { color: '#888', textAlign: 'center', paddingTop: 40 },
-  staleBanner: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, background: '#e8f0fe', border: '1px solid #c5d8fb', borderRadius: 6, padding: '6px 10px', marginBottom: 8, fontSize: 11, color: '#1a56c4', lineHeight: 1.4 },
-  staleLink: { color: '#1a73e8', fontWeight: 600, whiteSpace: 'nowrap', textDecoration: 'none', flexShrink: 0 },
-  empty: { textAlign: 'center', paddingTop: 32, color: '#555', lineHeight: 1.6 },
-  actionBar: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    marginBottom: 8, gap: 8,
-  },
-  selectionHint: { fontSize: 12, color: '#1a73e8', fontWeight: 600 },
-  analyzeAllBtn: {
-    fontSize: 12, padding: '5px 12px', border: 'none', borderRadius: 6,
-    background: '#1a73e8', color: '#fff', cursor: 'pointer', fontWeight: 600,
-    whiteSpace: 'nowrap', flexShrink: 0,
-  },
-  analyzeAllDisabled: { background: '#ccc', cursor: 'not-allowed' },
-  card: { border: '1px solid #e5e5e5', borderRadius: 8, marginBottom: 8, overflow: 'hidden' },
-  cardChecked: { borderColor: '#1a73e8', background: '#f8fbff' },
-  cardHeader: { display: 'flex', alignItems: 'center', padding: '8px 10px', gap: 6 },
-  label: { flex: 1, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', minWidth: 0 },
-  checkbox: { width: 15, height: 15, accentColor: '#1a73e8', flexShrink: 0, cursor: 'pointer' },
-  subject: {
-    fontSize: 13, color: '#333', fontWeight: 500,
-    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-  },
-  subjectChecked: { color: '#1a73e8' },
-  dateBadge: { fontSize: 10, color: '#aaa', whiteSpace: 'nowrap', flexShrink: 0 },
-  dateBadgeToday: { color: '#1a73e8', fontWeight: 600 },
-  cardDone: { opacity: 0.5 },
-  doneBadge: { fontSize: 10, color: '#2e7d32', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 },
-  expandBtn: {
-    background: 'none', border: 'none', cursor: 'pointer',
-    fontSize: 11, color: '#888', padding: '2px 4px', flexShrink: 0, whiteSpace: 'nowrap',
-  },
-  urlList: { borderTop: '1px solid #f0f0f0', padding: '6px 10px 10px' },
-  noUrls: { fontSize: 12, color: '#888', margin: '4px 0' },
-  urlRow: { padding: '3px 0', borderBottom: '1px solid #f5f5f5' },
-  urlText: {
-    fontSize: 11, color: '#555', display: 'block',
-    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-    fontFamily: 'monospace',
-  },
-};

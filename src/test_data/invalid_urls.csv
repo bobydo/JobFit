@@ -1,6 +1,6 @@
 ATS,URL,Reason
 unknown,https://randomsite.com/job/123,unsupported domain
 linkedin,https://www.linkedin.com/jobs/,missing job id
-indeed,https://indeed.com/viewjob,missing jk param
+indeed,https://indeed.com/viewjob,missing jk param — now accepted via fallback
 workday,https://company.myworkdayjobs.com/,missing path
 broken,not-a-url,invalid format

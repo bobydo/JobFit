@@ -146,14 +146,16 @@ export function extractCandidateUrls(text: string): string[] {
   const matches = text.match(/https?:\/\/[^\s<>"{}|\\^`[\]]+/g) ?? [];
 
   return [...new Set(matches)].filter((urlStr) => {
+    // Normalize HTML entities that appear when body is HTML (e.g. &amp; in href)
+    const url0 = urlStr.replace(/&amp;/gi, '&');
     try {
-      const url = new URL(urlStr);
+      const url = new URL(url0);
       const { pathname } = url;
 
       if (!pathname || pathname === '/') return false;
 
       // 1. Check known job site parsers (LinkedIn, Indeed, Workday, Greenhouse, etc.)
-      if (isKnownJobUrl(urlStr)) return true;
+      if (isKnownJobUrl(url0)) return true;
 
       // 2. Fallback: strict heuristic for unknown domains
       const hasId = /\/\d+(\/)?$/.test(pathname);
