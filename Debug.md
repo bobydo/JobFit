@@ -63,6 +63,27 @@ Get-Process chrome | Stop-Process -Force
 cd D:\JobFit; npm run dev
 ```
 
+## Root cause: Indeed job links silently dropped (2026-04-12)
+
+**Problem:** Indeed application confirmation emails are `multipart/alternative` with two body parts:
+- `text/plain` — contains only a "Contact Indeed" utility link, **no job link**
+- `text/html` — contains the actual `apply.indeed.com?next=https://ca.indeed.com/viewjob?jk=XXX` job link
+
+`getBodyForUrlExtraction` in `src/gmail/gmail-client.ts` was reading `text/plain` first and stopping there if it existed. The HTML part (and its job link) was never read.
+
+**How the issue was found — reading the code:**
+
+1. Open `src/gmail/gmail-client.ts`
+2. Search for `getBodyForUrlExtraction` (around line 155)
+3. Read the logic: `text/plain` is tried first; HTML is only read inside `if (!encoded)` — meaning HTML is skipped whenever a plain text part exists
+4. Cross-reference with the raw email (via Gmail → ⋮ menu → "Show original") — confirmed `text/plain` has no job link, `text/html` does
+
+**Fix:** Changed from "plain text first, HTML fallback" to "concatenate both parts":
+- `src/gmail/gmail-client.ts` — `getBodyForUrlExtraction` now builds a `parts[]` array, pushes both plain and HTML decoded bodies, returns `parts.join('\n')`
+- `extractCandidateUrls` already deduplicates via `new Set`, so overlap between parts is harmless
+
+**Why this is generic:** Any `multipart/alternative` email where job links only appear in the HTML part is affected. LinkedIn alerts happened to be HTML-only (no plain text part), so they worked by accident. The fix is correct for all job email senders.
+
 ## Solve issue later
 ![1775919285240](image/Debug/1775919285240.png)
 

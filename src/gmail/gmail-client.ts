@@ -149,29 +149,23 @@ export function getPlainTextBody(message: GmailMessage): string {
 
 /**
  * Returns the raw body suitable for URL extraction.
- * Prefers text/plain; falls back to text/html (e.g. HTML-only emails like LinkedIn alerts).
- * The URL extraction regex handles href="..." in HTML cleanly.
+ * Concatenates text/plain and text/html so that job links that appear only in
+ * the HTML part (e.g. Indeed application confirmation emails) are not missed.
+ * extractCandidateUrls deduplicates URLs, so overlap between parts is harmless.
  */
 export function getBodyForUrlExtraction(message: GmailMessage): string {
   const { payload } = message;
+  const parts: string[] = [];
 
-  // Try plain text first
-  let encoded: string | null = null;
-  if (payload.mimeType === 'text/plain' && payload.body.data) {
-    encoded = payload.body.data;
-  } else if (payload.parts) {
-    encoded = findPart(payload.parts, 'text/plain');
-  }
+  const plainEncoded = payload.mimeType === 'text/plain' && payload.body.data
+    ? payload.body.data
+    : payload.parts ? findPart(payload.parts, 'text/plain') : null;
+  if (plainEncoded) parts.push(decodeBase64url(plainEncoded));
 
-  // Fall back to HTML
-  if (!encoded) {
-    if (payload.mimeType === 'text/html' && payload.body.data) {
-      encoded = payload.body.data;
-    } else if (payload.parts) {
-      encoded = findPart(payload.parts, 'text/html');
-    }
-  }
+  const htmlEncoded = payload.mimeType === 'text/html' && payload.body.data
+    ? payload.body.data
+    : payload.parts ? findPart(payload.parts, 'text/html') : null;
+  if (htmlEncoded) parts.push(decodeBase64url(htmlEncoded));
 
-  if (!encoded) return '';
-  return decodeBase64url(encoded);
+  return parts.join('\n');
 }

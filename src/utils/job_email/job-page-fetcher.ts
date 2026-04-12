@@ -1,4 +1,4 @@
-import { isKnownJobUrl } from './job-url-parsers';
+import { isKnownJobUrl, resolveJobUrl } from './job-url-parsers';
 
 export interface JobPageData {
   title: string;
@@ -143,26 +143,46 @@ export async function fetchJobPageViaTab(url: string): Promise<JobPageData | nul
  * Extract candidate URLs from raw email body text.
  */
 export function extractCandidateUrls(text: string): string[] {
-  const matches = text.match(/https?:\/\/[^\s<>"{}|\\^`[\]]+/g) ?? [];
+  const matches = (text.match(/https?:\/\/[^\s<>"{}|\\^`[\]]+/g) ?? [])
+  .map(u => u.replace(/[">)]*$/, ''));
 
-  return [...new Set(matches)].filter((urlStr) => {
-    // Normalize HTML entities that appear when body is HTML (e.g. &amp; in href)
-    const url0 = urlStr.replace(/&amp;/gi, '&');
-    try {
-      const url = new URL(url0);
-      const { pathname } = url;
+  // flatMap so we can both filter and return the resolved canonical URL
+  return [...new Set(
+    matches.flatMap((urlStr) => {
+      // Normalize HTML entities that appear when body is HTML (e.g. &amp; in href)
+      let decodedUrl = urlStr.replace(/&amp;/gi, '&');
+      let finalUrl = decodedUrl;
+      try {
+        let url = new URL(decodedUrl);
+        // ✅ unwrap Gmail redirect
+        if (url.hostname.includes('google.com') && url.pathname === '/url') {
+          const q = url.searchParams.get('q');
+          if (q) {
+            finalUrl = decodeURIComponent(q);
+            url = new URL(finalUrl);
+          }
+        }
+        // ✅ resolve site-specific redirect/tracking URLs to canonical job URLs
+        // (e.g. Indeed ?next=, future sites) — logic lives in job-url-parsers.ts
+        const resolvedUrl = resolveJobUrl(finalUrl);
+        if (resolvedUrl !== finalUrl) {
+          finalUrl = resolvedUrl;
+          url = new URL(finalUrl);
+        }
 
-      if (!pathname || pathname === '/') return false;
+        const { pathname } = url;
+        if (!pathname || pathname === '/') return [];
 
-      // 1. Check known job site parsers (LinkedIn, Indeed, Workday, Greenhouse, etc.)
-      if (isKnownJobUrl(url0)) return true;
+        // 1. Check known job site parsers (LinkedIn, Indeed, Workday, Greenhouse, etc.)
+        if (isKnownJobUrl(finalUrl)) return [finalUrl];
 
-      // 2. Fallback: strict heuristic for unknown domains
-      const hasId = /\/\d+(\/)?$/.test(pathname);
-      const hasJobWord = /\/(job|jobs|career|careers|position|positions)\b/i.test(pathname);
-      return hasId && hasJobWord;
-    } catch {
-      return false;
-    }
-  });
+        // 2. Fallback: strict heuristic for unknown domains
+        const hasId = /\/\d+(\/)?$/.test(pathname);
+        const hasJobWord = /\/(job|jobs|career|careers|position|positions)\b/i.test(pathname);
+        return hasId && hasJobWord ? [finalUrl] : [];
+      } catch {
+        return [];
+      }
+    })
+  )];
 }

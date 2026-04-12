@@ -19,7 +19,8 @@ export const JOB_SITE_PARSERS: Record<string, (url: URL) => string | null> = {
     try {
       // Only handle indeed domains
       if (!url.hostname.includes('indeed.com')) return null;
-
+      console.log(`[indeed.com parser] URL: ${url}`);
+    
       // 1. Direct jk (most common)
       const jk = url.searchParams.get('jk');
       if (jk) return jk;
@@ -98,15 +99,44 @@ export const JOB_SITE_PARSERS: Record<string, (url: URL) => string | null> = {
 };
 
 
-/** Returns true if the URL matches a known job site and passes its parser. 
- * add a helper function like on(domain, hostname) to replace the inline hostname 
- * check in isKnownJobUrl, keep everything else the same
+/**
+ * JOB_SITE_REDIRECT_RESOLVERS
  *
- * I'm most effective when the developer:
- * Knows what they want — even roughly ("add a helper", "keep the same pattern")
- * Shows an example — a snippet of the desired output removes ambiguity instantly
- * Sets scope explicitly — "change only this function" prevents me from over-engineering
-*/
+ * Per-domain functions that unwrap tracking/redirect URLs to the canonical job URL.
+ * Add a new entry here when a site wraps its job links in email-specific redirects.
+ *
+ * Each resolver receives the redirect URL and returns the canonical destination URL,
+ * or the same URL unchanged if no redirect is detected.
+ */
+const JOB_SITE_REDIRECT_RESOLVERS: Record<string, (url: URL) => URL> = {
+  // apply.indeed.com?...&next=https://ca.indeed.com/viewjob?jk=XXX
+  // The iaUid/apiToken params are one-time email-confirmation tokens; resolve to the
+  // canonical viewjob URL so the tab fetcher never consumes the token.
+  'indeed.com': (url) => {
+    const next = url.searchParams.get('next');
+    if (!next) return url;
+    const resolved = next.startsWith('http') ? next : decodeURIComponent(next);
+    try { return new URL(resolved); } catch { return url; }
+  },
+};
+
+/**
+ * Resolves a site-specific redirect or tracking URL to its canonical destination.
+ * Returns the original string unchanged if no resolver matches or resolution fails.
+ */
+export function resolveJobUrl(urlStr: string): string {
+  try {
+    const url = new URL(urlStr);
+    const domainKey = Object.keys(JOB_SITE_REDIRECT_RESOLVERS).find((d) => on(d, url.hostname));
+    if (!domainKey) return urlStr;
+    const resolved = JOB_SITE_REDIRECT_RESOLVERS[domainKey](url);
+    return resolved !== url ? resolved.href : urlStr;
+  } catch {
+    return urlStr;
+  }
+}
+
+/** Returns true if the URL matches a known job site and passes its parser. */
 export function isKnownJobUrl(urlStr: string): boolean {
   try {
     const url = new URL(urlStr);

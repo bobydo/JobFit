@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { extractCandidateUrls } from './job-page-fetcher';
 
 // Plain-text representation of a real LinkedIn job alert email.
@@ -55,5 +57,43 @@ describe('extractCandidateUrls', () => {
     // Strip tracking params for readability — just check the path portion
     const paths = result.map((u) => new URL(u).pathname);
     expect(paths).toMatchSnapshot();
+  });
+});
+
+// ── Indeed job alert email URL resolution ────────────────────────────────────
+// apply.indeed.com?next=... links use one-time iaUid/apiToken tokens.
+// extractCandidateUrls must resolve these to the canonical viewjob URL so
+// fetchJobPageViaTab opens the real job page instead of consuming the token.
+
+const INDEED_HTML_PATH = resolve(__dirname, '../../test_data/indeedJobUrl.html');
+const indeedHtml = readFileSync(INDEED_HTML_PATH, 'utf-8');
+// Extract href URL and normalise &amp; → & (mirrors extractCandidateUrls behaviour)
+const hrefMatch = indeedHtml.match(/href="(https:\/\/apply\.indeed\.com[^"]+)"/);
+const applyUrl = hrefMatch![1].replace(/&amp;/g, '&');
+
+describe('extractCandidateUrls — Indeed email redirect resolution', () => {
+  it('resolves apply.indeed.com?next= to the canonical viewjob URL', () => {
+    const result = extractCandidateUrls(applyUrl);
+    expect(result.some((u) => u.includes('viewjob?jk=5a27122fc2cab829'))).toBe(true);
+  });
+
+  it('does not return the apply.indeed.com tracking URL', () => {
+    const result = extractCandidateUrls(applyUrl);
+    expect(result.some((u) => u.includes('apply.indeed.com'))).toBe(false);
+  });
+});
+
+// ── Indeed plain-text body has no job link ────────────────────────────────────
+// Indeed application confirmation emails are multipart/alternative.
+// The text/plain part contains only a utility "contact us" link — no job link.
+// This test documents that bug so the fix (reading HTML part too) stays in place.
+
+const INDEED_TEXT_PATH = resolve(__dirname, '../../test_data/indeedJobText.txt');
+const indeedPlainText = readFileSync(INDEED_TEXT_PATH, 'utf-8');
+
+describe('extractCandidateUrls — Indeed plain-text body', () => {
+  it('finds no job link in the plain-text part (documents why HTML part must also be read)', () => {
+    const result = extractCandidateUrls(indeedPlainText);
+    expect(result.some((u) => u.includes('viewjob'))).toBe(false);
   });
 });

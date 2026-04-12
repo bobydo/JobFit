@@ -53,6 +53,7 @@ describe('isKnownJobUrl — CSV invalid URL tests (must reject)', () => {
 });
 
 // ── Indeed URL variants (from indeedJobUrl.html) ────────────────────────────
+// Fixture uses raw email HTML (no Gmail web-UI data-saferedirecturl wrapper).
 const INDEED_HTML_PATH = resolve(__dirname, '../../test_data/indeedJobUrl.html');
 const indeedHtml = readFileSync(INDEED_HTML_PATH, 'utf-8');
 
@@ -60,19 +61,15 @@ const indeedHtml = readFileSync(INDEED_HTML_PATH, 'utf-8');
 const hrefMatch = indeedHtml.match(/href="(https:\/\/apply\.indeed\.com[^"]+)"/);
 const applyUrl  = hrefMatch![1].replace(/&amp;/g, '&');
 
-// Extract data-saferedirecturl (the Google redirect wrapper)
-const safeMatch = indeedHtml.match(/data-saferedirecturl="(https:\/\/www\.google\.com[^"]+)"/);
-const googleUrl = safeMatch![1].replace(/&amp;/g, '&');
-
 const indeedParser = JOB_SITE_PARSERS['indeed.com'];
 
 describe('indeed.com parser — returns job ID (from indeedJobUrl.html)', () => {
   it('extracts jk from apply.indeed.com via ?next= redirect', () => {
-    console.log('Testing URL:', applyUrl);
     expect(indeedParser(new URL(applyUrl))).toBe('5a27122fc2cab829');
   });
 
-  it('returns null for google.com safe-redirect wrapper', () => {
+  it('returns null for google.com safe-redirect wrapper (not an indeed.com host)', () => {
+    const googleUrl = 'https://www.google.com/url?q=https%3A%2F%2Fapply.indeed.com%2F&source=gmail';
     expect(indeedParser(new URL(googleUrl))).toBeNull();
   });
 
