@@ -22,7 +22,10 @@ export const DEFAULT_MAX_RESUMES   = 2;   // 1–5
 export const DEFAULT_MAX_JOB_POSTS = 60;  // 1–100
 export const DEFAULT_STALE_JOB_DAYS = 10; // 1–90
 export const DEFAULT_SAVE_FOLDER   = 'jobfit';
-
+// Gmail label cache (resumes/jobposts) — re-fetches after 5 min
+export const GMAIL_CACHE_TTL_MS = 5 * 60 * 1000;  
+// Analysis results — auto-cleared after 1 day
+export const RESULTS_TTL_MS = 24 * 60 * 60 * 1000;  
 // ── Job sites requiring user authentication ───────────────────────────────
 // Add new sites here — everything else derives from this list automatically.
 export interface AuthSiteConfig {

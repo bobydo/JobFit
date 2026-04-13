@@ -1,4 +1,5 @@
-const TTL_MS = 5 * 60 * 1000; // 5 minutes
+import { GMAIL_CACHE_TTL_MS, RESULTS_TTL_MS } from '../config';
+
 
 interface CacheEntry<T> {
   data: T;
@@ -8,7 +9,7 @@ interface CacheEntry<T> {
 export async function getCached<T>(key: string): Promise<T | null> {
   const result = await chrome.storage.local.get(key);
   const entry = result[key] as CacheEntry<T> | undefined;
-  if (!entry || Date.now() - entry.cachedAt > TTL_MS) return null;
+  if (!entry || Date.now() - entry.cachedAt > GMAIL_CACHE_TTL_MS) return null;
   return entry.data;
 }
 
@@ -43,8 +44,6 @@ export async function clearProcessedIds(): Promise<void> {
 // ── Analysis results ──────────────────────────────────────────────────────
 
 const RESULTS_KEY = 'analysisResults';
-const RESULTS_TTL_MS = 24 * 60 * 60 * 1000; // 1 day
-
 export async function getAnalysisResults(): Promise<import('../popup/types').AnalysisResult[]> {
   const result = await chrome.storage.local.get(RESULTS_KEY);
   const raw: Array<import('../popup/types').AnalysisResult & { analyzedAt: string }> = result[RESULTS_KEY] ?? [];
