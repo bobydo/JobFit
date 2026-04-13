@@ -111,26 +111,53 @@ export async function fetchJobPageViaTab(url: string): Promise<JobPageData | nul
             },
           },
           () => {
-            // Wait briefly for expanded content to render, then extract text
-            setTimeout(() => {
+            // Poll until body text stabilizes (JS-rendered pages like Indeed load after 'complete')
+            const POLL_INTERVAL = 500;
+            const STABLE_NEEDED = 2;  // consecutive equal-length checks → content ready
+            const MAX_POLLS = 16;     // 16 × 500ms = 8s hard cap
+            let lastLength = -1;
+            let stableCount = 0;
+            let pollCount = 0;
+
+            function poll() {
               chrome.scripting.executeScript(
-                {
-                  target: { tabId },
-                  func: () => ({
-                    title: document.title,
-                    body: (document.body?.innerText ?? '')
-                      .replace(/\s{3,}/g, '\n\n')
-                      .trim()
-                      .slice(0, 6000),
-                  }),
-                },
+                { target: { tabId }, func: () => document.body?.innerText?.length ?? 0 },
                 (results) => {
-                  chrome.tabs.remove(tabId, () => {});
-                  const data = results?.[0]?.result as JobPageData | undefined;
-                  resolve(data?.body ? data : null);
+                  const len = (results?.[0]?.result as number) ?? 0;
+                  if (len === lastLength) {
+                    stableCount++;
+                  } else {
+                    stableCount = 0;
+                    lastLength = len;
+                  }
+
+                  if (stableCount >= STABLE_NEEDED || pollCount >= MAX_POLLS) {
+                    chrome.scripting.executeScript(
+                      {
+                        target: { tabId },
+                        func: () => ({
+                          title: document.title,
+                          body: (document.body?.innerText ?? '')
+                            .replace(/\s{3,}/g, '\n\n')
+                            .trim()
+                            .slice(0, 6000),
+                        }),
+                      },
+                      (res) => {
+                        chrome.tabs.remove(tabId, () => {});
+                        const data = res?.[0]?.result as JobPageData | undefined;
+                        resolve(data?.body ? data : null);
+                      }
+                    );
+                  } else {
+                    pollCount++;
+                    setTimeout(poll, POLL_INTERVAL);
+                  }
                 }
               );
-            }, 1500);
+            }
+
+            setTimeout(poll, POLL_INTERVAL);
           }
         );
       }

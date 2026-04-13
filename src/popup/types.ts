@@ -12,6 +12,11 @@ export interface JobEmail {
   date: number;
 }
 
+export interface LoginWallResult {
+  jobUrl: string;
+  domain: string;   // display name: 'LinkedIn', 'Indeed', 'Glassdoor'
+}
+
 export interface AnalysisResult {
   jobEmailId: string;
   jobSubject: string;

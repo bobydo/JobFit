@@ -26,7 +26,7 @@ export const DEFAULT_SAVE_FOLDER   = 'jobfit';
 // ── Observability — Langfuse ───────────────────────────────────────────────
 // Set LANGFUSE_ENABLED = false to disable all tracing with zero overhead.
 // When true, keys/host are read from chrome.storage (Settings → Observability).
-export const LANGFUSE_ENABLED  = true;
+export const LANGFUSE_ENABLED  = false;
 export const LANGFUSE_BASE_URL = 'http://localhost:3001';
 export const LANGFUSE_SECRET_KEY = import.meta.env.VITE_LANGFUSE_SECRET_KEY ?? '';
 export const LANGFUSE_PUBLIC_KEY = import.meta.env.VITE_LANGFUSE_PUBLIC_KEY ?? '';

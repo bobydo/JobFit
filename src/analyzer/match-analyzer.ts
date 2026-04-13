@@ -161,14 +161,23 @@ export async function analyzePair(
 }
 
 /** Fetch job page content once for a URL. Handles LinkedIn /comm/ tracking URLs and login wall detection. */
-export async function fetchJobContent(url: string): Promise<{ title: string; body: string } | null> {
+export async function fetchJobContent(
+  url: string
+): Promise<{ title: string; body: string } | { loginRequired: true; domain: string } | null> {
   const linkedinJobId = url.match(/linkedin\.com\/comm\/jobs\/view\/(\d+)/)?.[1];
   const fetchUrl = linkedinJobId ? `https://www.linkedin.com/jobs/view/${linkedinJobId}/` : url;
   let page = await fetchJobPage(fetchUrl).catch(() => null);
   if (!page) page = await fetchJobPageViaTab(fetchUrl).catch(() => null);
   if (!page) return null;
   const loginWall = /^(sign in|log in|login|sign up|create account)/i;
-  if (loginWall.test(page.title.trim())) return null;
+  if (loginWall.test(page.title.trim())) {
+    const hostname = new URL(url).hostname;
+    const domain = hostname.includes('linkedin') ? 'LinkedIn'
+                 : hostname.includes('indeed')   ? 'Indeed'
+                 : hostname.includes('glassdoor') ? 'Glassdoor'
+                 : hostname;
+    return { loginRequired: true, domain };
+  }
   return page;
 }
 

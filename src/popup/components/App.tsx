@@ -9,7 +9,7 @@ import ResumesTab from './ResumesTab';
 import JobPostsTab from './JobPostsTab';
 import ResultsTab from './ResultsTab';
 import SettingsPanel from './SettingsPanel';
-import type { Resume, JobEmail, AnalysisResult } from '../types';
+import type { Resume, JobEmail, AnalysisResult, LoginWallResult } from '../types';
 import { ANALYSIS_POPUP_WIDTH, ANALYSIS_POPUP_HEIGHT, ANALYSIS_POPUP_MARGIN, WORKER_URL } from '../../config';
 import { shared } from './shared.styles';
 
@@ -31,6 +31,7 @@ export default function App() {
   const [maxResumes, setMaxResumes] = useState(2);
   const [storageReady, setStorageReady] = useState(false);
   const [resultsData, setResultsData] = useState<AnalysisResult[]>([]);
+  const [loginWalls, setLoginWalls] = useState<LoginWallResult[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
   const [analyzeProgress, setAnalyzeProgress] = useState<{ done: number; total: number } | null>(null);
@@ -88,6 +89,7 @@ export default function App() {
   async function runAnalysis(selectedJobs: JobEmail[], activeResumes: Resume[]) {
     setIsAnalyzing(true);
     setAnalyzeError(null);
+    setLoginWalls([]);
 
     const cfg = await getConfig();
     const cfgErr = getConfigError(cfg);
@@ -115,6 +117,10 @@ export default function App() {
         setAnalyzeProgress({ done: doneUrls, total: totalUrls });
         // Fetch job page ONCE for all resumes — avoids duplicate tab opens and inconsistent results
         const page = await fetchJobContent(url).catch(() => null);
+        if (page && 'loginRequired' in page) {
+          setLoginWalls(prev => [...prev, { jobUrl: url, domain: page.domain }]);
+          continue;
+        }
         const jobIdMatch = url.match(/\/(\d+)\//);
         const subject = page?.title ?? (jobIdMatch ? `${job.subject} #${jobIdMatch[1]}` : job.subject);
         const body = page?.body ?? job.body;
@@ -362,6 +368,7 @@ export default function App() {
             {activeTab === 'results' && (
               <ResultsTab
                 results={resultsData}
+                loginWalls={loginWalls}
                 isAnalyzing={isAnalyzing}
                 progress={analyzeProgress}
                 error={analyzeError}

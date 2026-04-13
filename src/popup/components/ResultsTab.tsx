@@ -1,10 +1,13 @@
 import { useState } from 'react';
-import type { AnalysisResult } from '../types';
+import type { AnalysisResult, LoginWallResult } from '../types';
 import { resultsStyles as s } from './shared.styles';
 import ScoreBadge from './lessChange/ScoreBadge';
+import SignInPrompt from './SignInPrompt';
 
+//[later] when client does not sign in on job websites
 interface Props {
   results: AnalysisResult[];
+  loginWalls: LoginWallResult[];
   isAnalyzing: boolean;
   progress: { done: number; total: number } | null;
   error: string | null;
@@ -66,7 +69,7 @@ function downloadResults(results: AnalysisResult[]) {
 }
 
 
-export default function ResultsTab({ results, isAnalyzing, progress, error }: Props) {
+export default function ResultsTab({ results, loginWalls, isAnalyzing, progress, error }: Props) {
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   if (isAnalyzing && results.length === 0) {
@@ -81,7 +84,7 @@ export default function ResultsTab({ results, isAnalyzing, progress, error }: Pr
     );
   }
 
-  if (results.length === 0) {
+  if (results.length === 0 && loginWalls.length === 0) {
     return (
       <div style={s.center}>
         No results yet.<br />
@@ -111,6 +114,13 @@ export default function ResultsTab({ results, isAnalyzing, progress, error }: Pr
       )}
       {error && (
         <div style={s.errorBanner}>{error}</div>
+      )}
+      {loginWalls.length > 0 && (
+        <div style={s.jobGroup}>
+          {loginWalls.map((lw) => (
+            <SignInPrompt key={lw.jobUrl} {...lw} />
+          ))}
+        </div>
       )}
       {Array.from(byJob.entries()).map(([groupKey, group]) => (
         <div key={groupKey} style={s.jobGroup}>
