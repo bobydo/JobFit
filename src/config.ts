@@ -23,6 +23,21 @@ export const DEFAULT_MAX_JOB_POSTS = 60;  // 1–100
 export const DEFAULT_STALE_JOB_DAYS = 10; // 1–90
 export const DEFAULT_SAVE_FOLDER   = 'jobfit';
 
+// ── Job sites requiring user authentication ───────────────────────────────
+// Add new sites here — everything else derives from this list automatically.
+export interface AuthSiteConfig {
+  displayName: string;
+  signInUrl: string;       // opened when user needs to sign in
+  cookieDomains: string[]; // all domains checked for auth cookies (covers regional TLDs)
+  authCookies: string[];   // any of these present → signed in
+}
+
+export const AUTH_REQUIRED_DOMAINS: Record<string, AuthSiteConfig> = {
+  'linkedin.com':  { displayName: 'LinkedIn',  signInUrl: 'https://www.linkedin.com/login',                    cookieDomains: ['.linkedin.com'],                    authCookies: ['li_at'] },
+  'indeed.com':    { displayName: 'Indeed',    signInUrl: 'https://www.indeed.com/account/login',              cookieDomains: ['.indeed.com'],                      authCookies: ['PPID', 'SOCK'] },
+  'glassdoor.com': { displayName: 'Glassdoor', signInUrl: 'https://www.glassdoor.com/profile/login_input.htm', cookieDomains: ['.glassdoor.com', '.glassdoor.ca'], authCookies: ['at'] },
+};
+
 // ── Observability — Langfuse ───────────────────────────────────────────────
 // Set LANGFUSE_ENABLED = false to disable all tracing with zero overhead.
 // When true, keys/host are read from chrome.storage (Settings → Observability).

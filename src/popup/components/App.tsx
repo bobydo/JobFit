@@ -8,7 +8,7 @@ import OnboardingScreen from './OnboardingScreen';
 import ResumesTab from './ResumesTab';
 import JobPostsTab from './JobPostsTab';
 import ResultsTab from './ResultsTab';
-import SettingsPanel from './SettingsPanel';
+import SettingsPanel from './SettingsPanel/SettingsPanel';
 import type { Resume, JobEmail, AnalysisResult, LoginWallResult } from '../types';
 import { ANALYSIS_POPUP_WIDTH, ANALYSIS_POPUP_HEIGHT, ANALYSIS_POPUP_MARGIN, WORKER_URL } from '../../config';
 import { shared } from './shared.styles';
@@ -35,8 +35,6 @@ export default function App() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
   const [analyzeProgress, setAnalyzeProgress] = useState<{ done: number; total: number } | null>(null);
-  // Default true to avoid a flash of the nudge on returning users; overwritten from config below
-  const [settingsAcknowledged, setSettingsAcknowledged] = useState(true);
   const [gmailEmail, setGmailEmail] = useState('');
   // True when reopened as a standalone window to keep analysis alive
   const isStandalone = new URLSearchParams(window.location.search).has('analyze');
@@ -48,7 +46,6 @@ export default function App() {
     });
     getConfig().then((cfg) => {
       setMaxResumes(cfg.maxResumes);
-      setSettingsAcknowledged(cfg.settingsAcknowledged ?? false);
     });
     getAnalysisResults().then(setResultsData);
     getGmailProfile().then((email) => { if (email) setGmailEmail(email); }).catch(() => {});
@@ -288,18 +285,9 @@ export default function App() {
 
   return (
     <div style={styles.container}>
-      {/* Inject pulse animation for the settings nudge — removed once acknowledged */}
-      {!settingsAcknowledged && !isStandalone && (
-        <style>{`@keyframes jobfit-pulse{0%,100%{box-shadow:0 0 0 0 rgba(26,115,232,0.55)}50%{box-shadow:0 0 0 7px rgba(26,115,232,0)}}`}</style>
-      )}
-
       {/* Header */}
       <div style={styles.header}>
         <span style={styles.logo}>JobFit</span>
-        {/* First-run nudge: inline in header, pointing right at the ⚙ button */}
-        {!settingsAcknowledged && !isStandalone && (
-          <span style={styles.nudgeLabel}>👉 Start here</span>
-        )}
         {gmailEmail && (
           <div style={styles.loginBadge}>
             <span style={styles.loginDot} />
@@ -308,18 +296,9 @@ export default function App() {
           </div>
         )}
         <button
-          style={{
-            ...styles.iconBtn,
-            ...(!settingsAcknowledged && !isStandalone ? styles.iconBtnPulse : {}),
-          }}
-          onClick={() => {
-            setShowSettings(!showSettings);
-            if (!settingsAcknowledged) {
-              setSettingsAcknowledged(true);
-              saveConfig({ settingsAcknowledged: true });
-            }
-          }}
-        >⚙</button>
+          style={{ ...styles.iconBtn, ...(loginWalls.length > 0 ? styles.iconBtnWarn : {}) }}
+          onClick={() => setShowSettings(!showSettings)}
+        >⚙ Settings{loginWalls.length > 0 && <span style={styles.warnDot}>!</span>}</button>
       </div>
 
       {isAnalyzing && (
@@ -391,9 +370,9 @@ const styles: Record<string, React.CSSProperties> = {
   center: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 200, padding: 16, textAlign: 'center' },
   header: shared.panelHeader,
   logo: { fontWeight: 700, fontSize: 16 },
-  iconBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 2, borderRadius: 4 },
-  iconBtnPulse: { animation: 'jobfit-pulse 1.5s ease-in-out infinite', color: '#1a73e8' },
-  nudgeLabel: { fontSize: 12, color: '#1a56c4', fontWeight: 600, marginLeft: 'auto', marginRight: 6 },
+  iconBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, padding: '2px 6px', borderRadius: 4 },
+  iconBtnWarn: { color: '#e65100' },
+  warnDot: { marginLeft: 3, fontWeight: 700, color: '#e65100' },
   loginBadge: { display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto', marginRight: 6 },
   loginDot:   { width: 7, height: 7, borderRadius: '50%', background: '#34a853', flexShrink: 0 } as React.CSSProperties,
   loginEmail: { fontSize: 11, color: '#555', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as React.CSSProperties,

@@ -1,13 +1,9 @@
 import { useEffect, useState } from 'react';
 import { getConfig, saveConfig, AppConfig, LLMMode, ByokProvider } from '@storage/config-store';
-import { WORKER_URL, STRIPE_PRO_URL, OLLAMA_MODEL, OLLAMA_BASE_URL, LANGFUSE_BASE_URL, DEV_MODE } from '../../config';
-import { settingsPanelStyles as s } from './shared.styles';
-
-const BYOK_HINTS: Record<ByokProvider, string> = {
-  groq:      'Get a free key at console.groq.com → API Keys. Free tier covers ~14,400 req/day.',
-  anthropic: 'Get a key at console.anthropic.com → API Keys. Add credits first — no free tier.',
-  openai:    'Get a key at platform.openai.com → API Keys. Add credits first — no free tier.',
-};
+import { WORKER_URL, STRIPE_PRO_URL, OLLAMA_MODEL, OLLAMA_BASE_URL, LANGFUSE_BASE_URL, DEV_MODE, AUTH_REQUIRED_DOMAINS } from '../../../config';
+import { recheckSites as _recheckSites } from '@utils/SettingsPanel/siteSignIn';
+import { settingsPanelStyles as s } from '../shared.styles';
+import ByokSettings from './ByokSettings';
 
 export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [config, setConfig] = useState<AppConfig | null>(null);
@@ -29,6 +25,8 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [langfuseStatus, setLangfuseStatus] = useState<'idle' | 'ok' | 'error'>('idle');
   const [saveFolder, setSaveFolder] = useState('jobfit');
   const [saved, setSaved] = useState(false);
+  const [siteStatus, setSiteStatus] = useState<Record<string, boolean | null>>({});
+  const [siteChecking, setSiteChecking] = useState(false);
 
   useEffect(() => {
     getConfig().then((cfg) => {
@@ -50,6 +48,12 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
     });
   }, []);
 
+
+  async function recheckSites() {
+    await _recheckSites(setSiteChecking, setSiteStatus);
+  }
+
+  useEffect(() => { recheckSites(); }, []);
 
   function openStripe(url: string) {
     chrome.tabs.create({ url });
@@ -180,8 +184,9 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
 
       <div style={s.body}>
 
-        {/* ── LLM Mode ── */}
-        <div style={s.section}>
+        {/* ── LLM Mode + Job Site Sign-in (side by side) ── */}
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 20 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div style={s.sectionLabel}>LLM Mode</div>
 
           {/* JobFit Cloud */}
@@ -223,45 +228,24 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
           )}
 
           {/* My own API key */}
-          <label style={s.radioRow}>
-            <input type="radio" checked={['groq','anthropic','openai'].includes(mode)} onChange={() => setMode(byokProvider)} />
-            <span style={s.radioLabel}>My own API key</span>
-          </label>
-
-          {['groq','anthropic','openai'].includes(mode) && (
-            <div style={s.indent}>
-              <div style={s.fieldLabel}>Provider</div>
-              <select style={s.select} value={byokProvider} onChange={(e) => { setByokProvider(e.target.value as ByokProvider); setMode(e.target.value as ByokProvider); setKeyStatus('idle'); }}>
-                <option value="groq">Groq</option>
-                <option value="anthropic">Anthropic</option>
-                <option value="openai">OpenAI</option>
-              </select>
-
-              <div style={s.fieldLabel}>API Key</div>
-              <div style={s.row}>
-                <input
-                  style={s.input}
-                  type={showKey ? 'text' : 'password'}
-                  placeholder="Paste API key…"
-                  value={apiKey}
-                  onChange={(e) => { setApiKey(e.target.value); setKeyStatus('idle'); }}
-                />
-                <button style={s.eyeBtn} onClick={() => setShowKey(!showKey)}>{showKey ? '🙈' : '👁'}</button>
-                <button style={s.saveBtn} onClick={saveApiKey} disabled={keyStatus === 'validating'}>
-                  {keyStatus === 'validating' ? '…' : 'Save'}
-                </button>
-              </div>
-              <div style={s.hint}>{BYOK_HINTS[byokProvider]}</div>
-              {keyStatus === 'ok'    && <div style={s.ok}>Key saved and validated</div>}
-              {keyStatus === 'error' && <div style={s.err}>Could not connect — check your key and try again</div>}
-
-              <div style={s.waiverBox}>
-                ⚠ Your API key is stored locally on this device and used only to contact your chosen provider.
-                JobFit never transmits your key to any external server.
-                You are responsible for any usage charges incurred.
-              </div>
-            </div>
-          )}
+          <ByokSettings
+            mode={mode}
+            byokProvider={byokProvider}
+            apiKey={apiKey}
+            keyStatus={keyStatus}
+            showKey={showKey}
+            onModeChange={setMode}
+            onProviderChange={setByokProvider}
+            onApiKeyChange={setApiKey}
+            onToggleShowKey={() => setShowKey(!showKey)}
+            onSave={saveApiKey}
+            hints={{
+              groq:      'Get a free key at console.groq.com → API Keys. Free tier covers ~14,400 req/day.',
+              anthropic: 'Get a key at console.anthropic.com → API Keys.',
+              openai:    'Get a key at platform.openai.com → API keys.',
+            }}
+            styles={s}
+          />
 
           {/* Ollama — local dev, no subscription */}
           {DEV_MODE && (
@@ -303,9 +287,8 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
               )}
             </>
           )}
-        </div>
 
-        {/* ── Observability (Langfuse) — dev only ── */}
+          {/* ── Observability (Langfuse) — dev only ── */}
         {DEV_MODE && (
           <div style={s.section}>
             <div style={s.sectionLabel}>Observability (Langfuse)</div>
@@ -357,6 +340,44 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
             {langfuseStatus === 'error' && <div style={s.err}>Host URL is required</div>}
           </div>
         )}
+        </div>{/* end left column */}
+
+        {/* ── Job Site Sign-in — right column ── */}
+        <div style={{ width: 155, flexShrink: 0 }}>
+          <div style={{ ...s.sectionLabel, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            Job Site Sign-in
+            <button
+              style={{ ...s.saveBtn, fontSize: 10, padding: '1px 6px' }}
+              onClick={recheckSites}
+              disabled={siteChecking}
+            >
+              {siteChecking ? 'Checking…' : 'Recheck'}
+            </button>
+          </div>
+          <div style={s.hint}>Must be signed in so JobFit can read job details.</div>
+          {Object.entries(AUTH_REQUIRED_DOMAINS).map(([hostname, cfg]) => {
+            const status = siteStatus[hostname];
+            const checking = siteChecking || status === undefined;
+            return (
+              <div key={hostname} style={{ marginBottom: 6, fontSize: 12 }}>
+                <span style={{ fontWeight: 500 }}>{cfg.displayName}: </span>
+                {checking ? (
+                  <span style={{ color: '#aaa' }}>Checking…</span>
+                ) : status ? (
+                  <span style={{ color: '#2e7d32' }}>✓ Signed in</span>
+                ) : (
+                  <button
+                    style={{ fontSize: 11, padding: '1px 6px', background: 'none', border: '1px solid #1a73e8', borderRadius: 4, color: '#1a73e8', cursor: 'pointer' }}
+                    onClick={() => chrome.tabs.create({ url: cfg.signInUrl })}
+                  >
+                    Sign in →
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        </div>{/* end flex row */}
 
         {/* ── General ── */}
         <div style={s.section}>

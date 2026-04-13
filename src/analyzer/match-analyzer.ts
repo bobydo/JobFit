@@ -7,6 +7,7 @@ import {
   DAILY_ANALYSIS_LIMIT,
   GROQ_DEFAULT_MODEL, OPENAI_DEFAULT_MODEL, ANTHROPIC_DEFAULT_MODEL,
   OLLAMA_MODEL,
+  AUTH_REQUIRED_DOMAINS,
 } from '../config';
 import { getDailyCount, incrementDailyCount } from '../storage/cache-store';
 import type { Resume, JobEmail, AnalysisResult } from '../popup/types';
@@ -172,10 +173,8 @@ export async function fetchJobContent(
   const loginWall = /^(sign in|log in|login|sign up|create account)/i;
   if (loginWall.test(page.title.trim())) {
     const hostname = new URL(url).hostname;
-    const domain = hostname.includes('linkedin') ? 'LinkedIn'
-                 : hostname.includes('indeed')   ? 'Indeed'
-                 : hostname.includes('glassdoor') ? 'Glassdoor'
-                 : hostname;
+    const found = Object.entries(AUTH_REQUIRED_DOMAINS).find(([d]) => hostname.includes(d));
+    const domain = found ? found[1].displayName : hostname;
     return { loginRequired: true, domain };
   }
   return page;

@@ -1,18 +1,17 @@
 import { isKnownJobUrl, resolveJobUrl } from './job-url-parsers';
+import { AUTH_REQUIRED_DOMAINS } from '../../config';
 
 export interface JobPageData {
   title: string;
   body: string;
 }
 
-// Sites that require user authentication — skip direct (cookie-less) fetch.
-// The caller will use fetchJobPageViaTab which runs in a real browser tab with the user's session.
-const AUTH_REQUIRED_DOMAINS = ['linkedin.com', 'indeed.com', 'glassdoor.com'];
-
 function requiresAuthTab(url: string): boolean {
   try {
     const { hostname } = new URL(url);
-    return AUTH_REQUIRED_DOMAINS.some((d) => hostname === d || hostname.endsWith(`.${d}`));
+    return Object.keys(AUTH_REQUIRED_DOMAINS).some(
+      (d) => hostname === d || hostname.endsWith(`.${d}`)
+    );
   } catch {
     return false;
   }
