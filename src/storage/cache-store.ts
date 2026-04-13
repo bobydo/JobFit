@@ -43,10 +43,17 @@ export async function clearProcessedIds(): Promise<void> {
 // ── Analysis results ──────────────────────────────────────────────────────
 
 const RESULTS_KEY = 'analysisResults';
+const RESULTS_TTL_MS = 24 * 60 * 60 * 1000; // 1 day
 
 export async function getAnalysisResults(): Promise<import('../popup/types').AnalysisResult[]> {
   const result = await chrome.storage.local.get(RESULTS_KEY);
   const raw: Array<import('../popup/types').AnalysisResult & { analyzedAt: string }> = result[RESULTS_KEY] ?? [];
+  if (raw.length === 0) return [];
+  const newest = Math.max(...raw.map((r) => new Date(r.analyzedAt).getTime()));
+  if (Date.now() - newest > RESULTS_TTL_MS) {
+    await chrome.storage.local.remove(RESULTS_KEY);
+    return [];
+  }
   return raw.map((r) => ({ ...r, analyzedAt: new Date(r.analyzedAt) }));
 }
 

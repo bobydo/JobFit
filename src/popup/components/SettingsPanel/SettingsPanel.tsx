@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getConfig, saveConfig, AppConfig, LLMMode, ByokProvider } from '@storage/config-store';
 import { WORKER_URL, STRIPE_PRO_URL, OLLAMA_MODEL, OLLAMA_BASE_URL, LANGFUSE_BASE_URL, DEV_MODE, AUTH_REQUIRED_DOMAINS } from '../../../config';
 import { recheckSites as _recheckSites } from '@utils/SettingsPanel/siteSignIn';
+import { validateApiKey } from '@utils/SettingsPanel/APICall';
 import { settingsPanelStyles as s } from '../shared.styles';
 import ByokSettings from './ByokSettings';
 
@@ -92,31 +93,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
     if (!key) return;
     setKeyStatus('validating');
     try {
-      // Lightweight validation per provider
-      let ok = false;
-      if (byokProvider === 'groq' || byokProvider === 'openai') {
-        const url = byokProvider === 'groq'
-          ? 'https://api.groq.com/openai/v1/models'
-          : 'https://api.openai.com/v1/models';
-        const res = await fetch(url, { headers: { Authorization: `Bearer ${key}` } });
-        ok = res.ok;
-      } else {
-        // Anthropic: minimal 1-token completion
-        const res = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'x-api-key': key,
-            'anthropic-version': '2023-06-01',
-            'content-type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'claude-haiku-4-5-20251001',
-            max_tokens: 1,
-            messages: [{ role: 'user', content: 'hi' }],
-          }),
-        });
-        ok = res.ok;
-      }
+      const ok = await validateApiKey(byokProvider, key);
       if (!ok) throw new Error('invalid key');
       await saveConfig({ mode: byokProvider, byokProvider, apiKey: key });
       setMode(byokProvider);

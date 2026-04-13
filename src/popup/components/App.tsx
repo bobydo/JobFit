@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { labelExists, getGmailProfile } from '@gmail/gmail-client';
 import { getAuthToken, removeAuthToken } from '@gmail/gmail-auth';
-import { clearCached, getAnalysisResults, saveAnalysisResults, clearAnalysisResults } from '@storage/cache-store';
+import { getCached, getAnalysisResults, saveAnalysisResults } from '@storage/cache-store';
 import { getConfig, saveConfig } from '@storage/config-store';
 import { fetchJobContent, analyzePair } from '@analyzer/match-analyzer';
 import OnboardingScreen from './OnboardingScreen';
@@ -9,9 +9,11 @@ import ResumesTab from './ResumesTab';
 import JobPostsTab from './JobPostsTab';
 import ResultsTab from './ResultsTab';
 import SettingsPanel from './SettingsPanel/SettingsPanel';
+import Header from './Header';
 import type { Resume, JobEmail, AnalysisResult, LoginWallResult } from '../types';
-import { ANALYSIS_POPUP_WIDTH, ANALYSIS_POPUP_HEIGHT, ANALYSIS_POPUP_MARGIN, WORKER_URL } from '../../config';
-import { shared } from './shared.styles';
+import { ANALYSIS_POPUP_WIDTH, ANALYSIS_POPUP_HEIGHT, ANALYSIS_POPUP_MARGIN, WORKER_URL, AUTH_REQUIRED_DOMAINS } from '../../config';
+import { recheckSites } from '@utils/SettingsPanel/siteSignIn';
+import { checkApiReady } from '@utils/SettingsPanel/APICall';
 
 type Tab = 'resumes' | 'jobposts' | 'results';
 
@@ -22,7 +24,9 @@ type SetupState =
   | { status: 'error'; message: string };
 
 export default function App() {
-  const [setup, setSetup] = useState<SetupState>({ status: 'checking' });
+  // True when reopened as a standalone window to keep analysis alive
+  const isStandalone = new URLSearchParams(window.location.search).has('analyze');
+  const [setup, setSetup] = useState<SetupState>({ status: isStandalone ? 'ready' : 'checking' });
   const [activeTab, setActiveTab] = useState<Tab>('resumes');
   const [showSettings, setShowSettings] = useState(false);
   const [activeResumeIds, setActiveResumeIds] = useState<string[]>([]);
@@ -36,17 +40,22 @@ export default function App() {
   const [analyzeError, setAnalyzeError] = useState<string | null>(null);
   const [analyzeProgress, setAnalyzeProgress] = useState<{ done: number; total: number } | null>(null);
   const [gmailEmail, setGmailEmail] = useState('');
-  // True when reopened as a standalone window to keep analysis alive
-  const isStandalone = new URLSearchParams(window.location.search).has('analyze');
+  const [siteStatus, setSiteStatus] = useState<Record<string, boolean | null>>({});
+  const [siteChecking, setSiteChecking] = useState(false);
+  const [apiStatus, setApiStatus] = useState<'checking' | 'ok' | 'error'>('checking');
 
   useEffect(() => {
     chrome.storage.local.get('activeResumeIds', (stored) => {
       if (stored.activeResumeIds?.length) setActiveResumeIds(stored.activeResumeIds);
       setStorageReady(true);
     });
-    getConfig().then((cfg) => {
+    getCached<Resume[]>('resumes').then(stored => { if (stored) setResumesData(stored); });
+    getConfig().then(async (cfg) => {
       setMaxResumes(cfg.maxResumes);
+      const ok = await checkApiReady(cfg);
+      setApiStatus(ok ? 'ok' : 'error');
     });
+    recheckSites(setSiteChecking, setSiteStatus);
     getAnalysisResults().then(setResultsData);
     getGmailProfile().then((email) => { if (email) setGmailEmail(email); }).catch(() => {});
 
@@ -146,8 +155,12 @@ export default function App() {
   }
 
   async function handleAnalyze(selectedJobs: JobEmail[]) {
-    if (!resumesData || resumesData.length === 0 || activeResumeIds.length === 0) {
-      setAnalyzeError('No resumes selected. Go to the Resumes tab and select at least one.');
+    if (activeResumeIds.length === 0) {
+      setAnalyzeError('No resume selected — go to the Resumes tab and select at least one.');
+      return;
+    }
+    if (!resumesData || resumesData.length === 0) {
+      setAnalyzeError('Resume data could not be loaded — please go to the Resumes tab and re-select your resume.');
       return;
     }
     const activeResumes = resumesData.filter((r) => activeResumeIds.includes(r.id));
@@ -236,19 +249,7 @@ export default function App() {
     }
   }
 
-  async function handleRefresh() {
-    await clearCached('resumes', 'jobposts');
-    await clearAnalysisResults();
-    chrome.storage.local.remove('activeResumeIds');
-    setResumesData(null);
-    setJobEmailsData(null);
-    setActiveResumeIds([]);
-    setResultsData([]);
-    setAnalyzeError(null);
-    await checkLabels();
-  }
-
-  useEffect(() => { checkLabels(); }, []);
+  useEffect(() => { if (!isStandalone) checkLabels(); }, []);
 
   // Silently submit email to Google Form via Cloudflare Worker once labels are confirmed ready
   useEffect(() => {
@@ -286,20 +287,26 @@ export default function App() {
   return (
     <div style={styles.container}>
       {/* Header */}
-      <div style={styles.header}>
-        <span style={styles.logo}>JobFit</span>
-        {gmailEmail && (
-          <div style={styles.loginBadge}>
-            <span style={styles.loginDot} />
-            <span style={styles.loginEmail}>{gmailEmail.replace(/@.*/, '')}</span>
-            <button style={styles.signOutBtn} onClick={handleSignOut}>Sign out</button>
-          </div>
-        )}
-        <button
-          style={{ ...styles.iconBtn, ...(loginWalls.length > 0 ? styles.iconBtnWarn : {}) }}
-          onClick={() => setShowSettings(!showSettings)}
-        >⚙ Settings{loginWalls.length > 0 && <span style={styles.warnDot}>!</span>}</button>
-      </div>
+      {(() => {
+        const siteVals  = Object.keys(AUTH_REQUIRED_DOMAINS).map(h => siteStatus[h]);
+        const sitesOk   = siteVals.length > 0 && siteVals.every(v => v === true);
+        const sitesWarn = siteVals.some(v => v === false);
+        const apiOk      = apiStatus === 'ok';
+        const apiWarn    = apiStatus === 'error';
+        const apiChecking = apiStatus === 'checking';
+        return (
+          <Header
+            sitesOk={sitesOk} sitesWarn={sitesWarn} siteChecking={siteChecking}
+            apiOk={apiOk} apiWarn={apiWarn} apiChecking={apiChecking}
+            loginWalls={loginWalls}
+            gmailEmail={gmailEmail}
+            showSettings={showSettings}
+            onSignOut={handleSignOut}
+            onToggleSettings={() => setShowSettings(!showSettings)}
+            onOpenSettings={() => setShowSettings(true)}
+          />
+        );
+      })()}
 
       {isAnalyzing && (
         <div style={styles.closeBar}>
@@ -313,15 +320,20 @@ export default function App() {
         <>
           {/* Tabs */}
           <div style={styles.tabs}>
-            {(['resumes', 'jobposts', 'results'] as Tab[]).map((t) => (
-              <button
-                key={t}
-                style={{ ...styles.tab, ...(activeTab === t ? styles.tabActive : {}) }}
-                onClick={() => setActiveTab(t)}
-              >
-                {t === 'resumes' ? 'Resumes' : t === 'jobposts' ? 'Job Posts' : 'Results'}
-              </button>
-            ))}
+            {(['resumes', 'jobposts', 'results'] as Tab[]).map((t) => {
+              const blocked = t !== 'resumes' && activeResumeIds.length === 0;
+              return (
+                <button
+                  key={t}
+                  style={{ ...styles.tab, ...(activeTab === t ? styles.tabActive : {}), ...(blocked ? styles.tabDisabled : {}) }}
+                  disabled={blocked}
+                  onClick={() => setActiveTab(t)}
+                  title={blocked ? 'Select at least one resume first' : undefined}
+                >
+                  {t === 'resumes' ? 'Resumes' : t === 'jobposts' ? 'Job Posts' : 'Results'}
+                </button>
+              );
+            })}
           </div>
 
           {/* Tab content */}
@@ -330,7 +342,6 @@ export default function App() {
               <ResumesTab
                 activeResumeIds={activeResumeIds}
                 onToggle={toggleResume}
-                onInitIds={setActiveResumeIds}
                 cachedData={resumesData}
                 onDataLoaded={setResumesData}
                 maxResumes={maxResumes}
@@ -355,10 +366,6 @@ export default function App() {
             )}
           </div>
 
-          {/* Footer */}
-          <div style={styles.footer}>
-            <button style={styles.refreshBtn} onClick={handleRefresh}>↺ Refresh</button>
-          </div>
         </>
       )}
     </div>
@@ -368,23 +375,14 @@ export default function App() {
 const styles: Record<string, React.CSSProperties> = {
   container: { display: 'flex', flexDirection: 'column', height: '100%' },
   center: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 200, padding: 16, textAlign: 'center' },
-  header: shared.panelHeader,
-  logo: { fontWeight: 700, fontSize: 16 },
-  iconBtn: { background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, padding: '2px 6px', borderRadius: 4 },
-  iconBtnWarn: { color: '#e65100' },
-  warnDot: { marginLeft: 3, fontWeight: 700, color: '#e65100' },
-  loginBadge: { display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto', marginRight: 6 },
-  loginDot:   { width: 7, height: 7, borderRadius: '50%', background: '#34a853', flexShrink: 0 } as React.CSSProperties,
-  loginEmail: { fontSize: 11, color: '#555', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as React.CSSProperties,
-  signOutBtn: { ...shared.dangerBtn, padding: '4px 10px' },
   tabs: { display: 'flex', borderBottom: '2px solid #e5e5e5' },
   tab: { flex: 1, padding: '8px 0', background: 'none', border: 'none', borderBottom: '3px solid transparent', cursor: 'pointer', fontSize: 13, color: '#888', marginBottom: -2 },
   tabActive: { borderBottom: '3px solid #1a73e8', color: '#1a73e8', fontWeight: 600, background: '#f0f6ff' },
   content: { flex: 1, overflowY: 'auto', padding: 12 },
   footer: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 14px', borderTop: '1px solid #e5e5e5' },
-  refreshBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#555', fontSize: 13 },
   placeholder: { padding: 16, color: '#888', textAlign: 'center' },
   closeBar: { borderTop: '1px solid #e5e5e5', padding: '6px 14px', background: '#fff8e1', textAlign: 'center' },
   closeBarText: { fontSize: 12, color: '#555' },
   closeBarX: { fontWeight: 700, color: '#c62828', cursor: 'pointer' },
+  tabDisabled: { opacity: 0.35, cursor: 'not-allowed' },
 };

@@ -7,13 +7,12 @@ import { resumesStyles as s } from './shared.styles';
 interface Props {
   activeResumeIds: string[];
   onToggle: (id: string) => void;
-  onInitIds: (ids: string[]) => void;
   cachedData: Resume[] | null;
   onDataLoaded: (data: Resume[]) => void;
   maxResumes: number;
 }
 
-export default function ResumesTab({ activeResumeIds, onToggle, onInitIds, cachedData, onDataLoaded, maxResumes }: Props) {
+export default function ResumesTab({ activeResumeIds, onToggle, cachedData, onDataLoaded, maxResumes }: Props) {
   const [resumes, setResumes] = useState<Resume[]>(cachedData ?? []);
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>(cachedData ? 'loaded' : 'loading');
   const [error, setError] = useState('');
@@ -51,9 +50,6 @@ export default function ResumesTab({ activeResumeIds, onToggle, onInitIds, cache
   function apply(data: Resume[]) {
     setResumes(data);
     onDataLoaded(data);
-    if (activeResumeIds.length === 0 && data.length > 0) {
-      onInitIds([data[0].id]); // auto-select only the most recent; user picks the second
-    }
     setStatus('loaded');
   }
 

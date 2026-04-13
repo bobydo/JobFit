@@ -86,7 +86,7 @@ export default function ByokSettings({
                 onClick={onSave}
                 disabled={keyStatus === "validating"}
             >
-                {keyStatus === "validating" ? "…" : "Save"}
+                {keyStatus === "validating" ? "Validating..." : "Test & Save"}
             </button>
             </div>
 
@@ -95,7 +95,7 @@ export default function ByokSettings({
 
             {/* Status */}
             {keyStatus === "ok" && (
-            <div style={s.ok}>Key saved and validated</div>
+            <div style={s.ok}>Succeeded</div>
             )}
             {keyStatus === "error" && (
             <div style={s.err}>
