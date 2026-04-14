@@ -3,7 +3,7 @@
   "name": "JobFit",
   "version": "0.1.0",
   "description": "Match your resume against job postings from your Gmail inbox.",
-  "permissions": ["identity", "storage", "downloads", "windows", "tabs", "scripting", "cookies"],
+  "permissions": ["identity", "storage", "downloads", "windows", "scripting", "cookies"],
   "host_permissions": [
     "https://www.googleapis.com/*",
     "https://gmail.googleapis.com/*",
