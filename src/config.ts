@@ -4,6 +4,12 @@
 /** Cloudflare Worker URL for JobFit Cloud token validation https://dash.cloudflare.com/e6f74de28b7ee985e010db5b9aa93162/home/overview*/
 export const WORKER_URL = 'https://jobfit-signup.baoshenyi.workers.dev';
 
+/** Hosted Google Drive Picker page — served by the Worker. Extension opens this in a new window. */
+export const PICKER_URL = `${WORKER_URL}/picker`;
+
+/** Google API key (restricted to Picker API) — injected at build time, used by the hosted picker page. */
+export const DRIVE_API_KEY = import.meta.env.VITE_DRIVE_API_KEY ?? '';
+
 /** Stripe Payment Link — Pro plan ($11/mo, 2 resumes, 120 analyses/day) */
 export const STRIPE_PRO_URL = 'https://buy.stripe.com/YOUR_PRO_LINK';
 

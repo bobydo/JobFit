@@ -7,8 +7,7 @@ interface Props {
 }
 
 export default function OnboardingScreen({ missingLabels, onContinue }: Props) {
-  const missing = missingLabels as ('resumes' | 'jobposts')[];
-  const bothMissing = missing.includes('resumes') && missing.includes('jobposts');
+  const missing = missingLabels as ('jobposts')[];
 
   return (
     <div style={s.container}>
@@ -18,9 +17,9 @@ export default function OnboardingScreen({ missingLabels, onContinue }: Props) {
       <div style={s.privacyBox}>
         <span style={s.privacyIcon}>🔒</span>
         <div>
-          <div style={s.privacyHeading}>Your emails stay private</div>
+          <div style={s.privacyHeading}>Your data stays private</div>
           <div style={s.privacyText}>
-            JobFit only reads emails in the <strong>resumes</strong> and <strong>jobposts</strong> labels.
+            Resumes are picked from your Google Drive (one file at a time). JobFit only reads emails in the <strong>jobposts</strong> label.
           </div>
         </div>
       </div>
@@ -30,20 +29,8 @@ export default function OnboardingScreen({ missingLabels, onContinue }: Props) {
         <GmailSidebarMockup highlight={missing} />
 
         <div style={s.labelBlocks}>
-          {missing.includes('resumes') && (
-            <div style={{ ...s.labelBlock, ...(bothMissing ? s.labelBlockHalf : {}) }}>
-              <div style={s.labelHeader}>
-                <code style={s.code}>resumes</code>
-              </div>
-              <ol style={s.steps}>
-                <li>Create label <code style={s.inlineCode}>resumes</code></li>
-                <li>Email yourself — subject = role title (e.g. <em>Frontend Developer</em>), body = resume text</li>
-                <li>Apply the label to that email</li>
-              </ol>
-            </div>
-          )}
           {missing.includes('jobposts') && (
-            <div style={{ ...s.labelBlock, ...(bothMissing ? s.labelBlockHalf : {}) }}>
+            <div style={s.labelBlock}>
               <div style={s.labelHeader}>
                 <code style={s.code}>jobposts</code>
               </div>

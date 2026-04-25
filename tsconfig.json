@@ -16,6 +16,7 @@
     "baseUrl": ".",
     "paths": {
       "@gmail/*": ["src/gmail/*"],
+      "@drive/*": ["src/drive/*"],
       "@llm/*": ["src/llm/*"],
       "@analyzer/*": ["src/analyzer/*"],
       "@storage/*": ["src/storage/*"],

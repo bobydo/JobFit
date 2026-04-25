@@ -2,7 +2,20 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import webExtension from 'vite-plugin-web-extension';
 import path from 'path';
-import { readFileSync } from 'fs';
+import { readFileSync, copyFileSync, mkdirSync, existsSync } from 'fs';
+
+function copyPdfWorker() {
+  return {
+    name: 'copy-pdf-worker',
+    closeBundle() {
+      const src = path.resolve(__dirname, 'node_modules/pdfjs-dist/build/pdf.worker.min.mjs');
+      const destDir = path.resolve(__dirname, 'dist/assets');
+      const dest = path.join(destDir, 'pdf.worker.min.mjs');
+      if (!existsSync(destDir)) mkdirSync(destDir, { recursive: true });
+      copyFileSync(src, dest);
+    },
+  };
+}
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -20,6 +33,7 @@ export default defineConfig(({ mode }) => {
         watchFilePaths: ['src/**/*'],
         disableAutoLaunch: true,
       }),
+      copyPdfWorker(),
     ],
 
     build: {
@@ -31,6 +45,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@gmail': path.resolve(__dirname, 'src/gmail'),
+        '@drive': path.resolve(__dirname, 'src/drive'),
         '@llm': path.resolve(__dirname, 'src/llm'),
         '@analyzer': path.resolve(__dirname, 'src/analyzer'),
         '@storage': path.resolve(__dirname, 'src/storage'),

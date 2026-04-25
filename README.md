@@ -2,6 +2,18 @@
 
 Chrome extension that matches resumes against job postings using a local LLM.
 
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| **Extension** | Chrome Extension (Manifest V3), Chrome Storage API |
+| **UI** | React 18, TypeScript |
+| **Build** | Vite, vite-plugin-web-extension |
+| **Testing** | Vitest |
+| **Email** | Gmail API (OAuth2) |
+| **LLM** | Ollama (local), Anthropic Claude API, OpenAI-compatible API |
+| **Observability** | Langfuse (self-hosted via Docker) |
+
 ## Local Langfuse (observability)
 
 See **Setup.md → Langfuse Setup** for full installation steps.

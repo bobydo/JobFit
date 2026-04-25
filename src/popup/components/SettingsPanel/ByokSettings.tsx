@@ -1,5 +1,3 @@
-import React from "react";
-
 export type ByokProvider = "groq" | "anthropic" | "openai";
 export type KeyStatus = "idle" | "validating" | "ok" | "error";
 

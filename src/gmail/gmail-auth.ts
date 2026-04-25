@@ -18,3 +18,20 @@ export function removeAuthToken(token: string): Promise<void> {
     chrome.identity.removeCachedAuthToken({ token }, () => resolve());
   });
 }
+
+const DRIVE_CONSENT_FLAG = 'driveScopeConsented';
+
+// First launch after the drive.file scope was added to the manifest: invalidate any
+// cached token so getAuthToken(interactive=true) triggers a fresh consent screen that
+// includes the new scope. Runs at most once — the flag is persisted in local storage.
+export async function ensureDriveScopeConsent(): Promise<void> {
+  const stored = await chrome.storage.local.get(DRIVE_CONSENT_FLAG);
+  if (stored[DRIVE_CONSENT_FLAG]) return;
+  try {
+    const token = await getAuthToken(false);
+    await removeAuthToken(token);
+  } catch {
+    // no cached token — nothing to invalidate
+  }
+  await chrome.storage.local.set({ [DRIVE_CONSENT_FLAG]: true });
+}

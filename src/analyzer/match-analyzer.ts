@@ -189,6 +189,7 @@ export async function analyzeUrl(
 ): Promise<AnalysisResult | null> {
   const page = await fetchJobContent(url);
   if (!page) return null;
+  if ('loginRequired' in page) return null;
   const fakeJob: JobEmail = { id: emailId, subject: page.title, body: page.body, urls: [url], date: Date.now() };
   return analyzePair(resume, fakeJob, config);
 }

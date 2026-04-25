@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { labelExists, getGmailProfile } from '@gmail/gmail-client';
 import { getAuthToken, removeAuthToken } from '@gmail/gmail-auth';
-import { getCached, getAnalysisResults, saveAnalysisResults } from '@storage/cache-store';
+import { getAnalysisResults, saveAnalysisResults } from '@storage/cache-store';
+import { getUploadedResumes } from '@storage/resume-store';
 import { getConfig, saveConfig } from '@storage/config-store';
 import { fetchJobContent, analyzePair } from '@analyzer/match-analyzer';
 import OnboardingScreen from './OnboardingScreen';
@@ -49,7 +50,7 @@ export default function App() {
       if (stored.activeResumeIds?.length) setActiveResumeIds(stored.activeResumeIds);
       setStorageReady(true);
     });
-    getCached<Resume[]>('resumes').then(stored => { if (stored) setResumesData(stored); });
+    getUploadedResumes().then((stored) => { if (stored.length) setResumesData(stored); });
     getConfig().then(async (cfg) => {
       setMaxResumes(cfg.maxResumes);
       const ok = await checkApiReady(cfg);
@@ -236,12 +237,11 @@ export default function App() {
       );
       //labelExists is a function of gmail-client.ts 
       //https://gmail.googleapis.com/gmail/v1/users/me/labels API to check if label exists
-      const [hasResumes, hasJobposts] = await Promise.race([
-        Promise.all([labelExists('resumes'), labelExists('jobposts')]),
+      const hasJobposts = await Promise.race([
+        labelExists('jobposts'),
         timeout,
-      ]) as [boolean, boolean];
+      ]) as boolean;
       const missing: string[] = [];
-      if (!hasResumes) missing.push('resumes');
       if (!hasJobposts) missing.push('jobposts');
       setSetup(missing.length > 0 ? { status: 'needs_setup', missingLabels: missing } : { status: 'ready' });
     } catch (err) {
@@ -344,6 +344,7 @@ export default function App() {
                 onToggle={toggleResume}
                 cachedData={resumesData}
                 onDataLoaded={setResumesData}
+                onResumeDeleted={(id) => setActiveResumeIds((prev) => prev.filter((x) => x !== id))}
                 maxResumes={maxResumes}
               />
             )}
