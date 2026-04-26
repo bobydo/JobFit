@@ -16,21 +16,40 @@
     #status { font-size: 13px; line-height: 1.5; }
     #status.error { color: #c62828; }
     .hint { font-size: 11px; color: #888; margin-top: 12px; }
+    #progress-wrap { display: none; margin-top: 16px; }
+    #progress-track { background: #e0e0e0; border-radius: 4px; height: 8px; overflow: hidden; }
+    #progress-fill { background: #1a73e8; height: 100%; width: 0%; transition: width 0.25s ease; }
+    #progress-label { font-size: 11px; color: #555; margin-top: 6px; }
   </style>
 </head>
 <body>
   <h1>JobFit — pick a resume PDF from your Google Drive</h1>
   <div id="status">Connecting to extension…</div>
+  <div id="progress-wrap">
+    <div id="progress-track"><div id="progress-fill"></div></div>
+    <div id="progress-label"></div>
+  </div>
   <div class="hint">If the picker does not open, close this window and try again from the JobFit popup.</div>
 
   <script src="https://apis.google.com/js/api.js"></script>
   <script>
     (function () {
       var statusEl = document.getElementById('status');
+      var progressWrap = document.getElementById('progress-wrap');
+      var progressFill = document.getElementById('progress-fill');
+      var progressLabel = document.getElementById('progress-label');
 
       function setStatus(msg, isError) {
         statusEl.textContent = msg;
         statusEl.className = isError ? 'error' : '';
+      }
+
+      function setProgress(done, total, fileName) {
+        progressWrap.style.display = 'block';
+        progressFill.style.width = (total > 0 ? Math.round(done / total * 100) : 0) + '%';
+        progressLabel.textContent = fileName
+          ? 'File ' + done + ' of ' + total + ': ' + fileName
+          : (done === total ? 'All files downloaded.' : '');
       }
 
       function getExtId() {
@@ -92,7 +111,7 @@
             .setOAuthToken(token)
             .addView(view)
             .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
-            .setCallback(function (data) { onPickerCallback(extId, data); })
+            .setCallback(function (data) { onPickerCallback(extId, token, data); })
             .build();
 
           picker.setVisible(true);
@@ -104,7 +123,7 @@
         }
       }
 
-      async function onPickerCallback(extId, data) {
+      async function onPickerCallback(extId, token, data) {
         if (data.action === google.picker.Action.PICKED) {
           var docs = data.docs || [];
           if (!docs.length) {
@@ -112,8 +131,36 @@
             window.close();
             return;
           }
-          var files = docs.map(function(d) { return { fileId: d.id, fileName: d.name }; });
-          setStatus('Sending ' + files.length + ' file(s) to extension…');
+          setStatus('Downloading…');
+          setProgress(0, docs.length, '');
+          var done = 0;
+          var filesOrError;
+          try {
+            filesOrError = await Promise.all(docs.map(async function(doc) {
+              var res = await fetch(
+                'https://www.googleapis.com/drive/v3/files/' + doc.id + '?alt=media',
+                { headers: { Authorization: 'Bearer ' + token } }
+              );
+              if (!res.ok) {
+                var errText = await res.text().catch(function() { return ''; });
+                throw new Error(doc.name + ': download failed (' + res.status + '): ' + errText.slice(0, 200));
+              }
+              var buf = await res.arrayBuffer();
+              var bytes = new Uint8Array(buf);
+              var binary = '', CHUNK = 8192;
+              for (var b = 0; b < bytes.byteLength; b += CHUNK)
+                binary += String.fromCharCode.apply(null, bytes.subarray(b, b + CHUNK));
+              done++;
+              setProgress(done, docs.length, done < docs.length ? '' : '');
+              return { fileId: doc.id, fileName: doc.name, contentBase64: btoa(binary) };
+            }));
+          } catch (err) {
+            await notifyError(extId, err.message || String(err));
+            window.close();
+            return;
+          }
+          var files = filesOrError;
+          setStatus('Sending to extension…');
           await send(extId, { type: 'filesPicked', files: files });
           setStatus('Done. Closing…');
           setTimeout(function () { window.close(); }, 200);

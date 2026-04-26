@@ -24,7 +24,7 @@
     "client_id": "__OAUTH_CLIENT_ID__",
     "scopes": [
       "https://www.googleapis.com/auth/gmail.readonly",
-      "https://www.googleapis.com/auth/drive.file"
+      "https://www.googleapis.com/auth/drive.readonly"
     ]
   },
   "background": {

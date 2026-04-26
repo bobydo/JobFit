@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getAuthToken, ensureDriveScopeConsent } from '@gmail/gmail-auth';
 import { DrivePickerBridge } from '@drive/picker-bridge';
-import { DriveClient } from '@drive/drive-client';
 import { PdfParser } from '@utils/pdf-parser';
 import { ResumeStore } from '@storage/resume-store';
 
@@ -57,25 +56,30 @@ export default function ResumesTab({ activeResumeIds, onToggle, cachedData, onDa
       const picked = await bridge.pick(token);
       if (!picked || picked.length === 0) return; // user cancelled
 
-      const drive = new DriveClient(token);
       const parser = new PdfParser();
       const errors: string[] = [];
       let latest: Resume[] = resumes;
 
-      for (let i = 0; i < picked.length; i++) {
-        const file = picked[i];
-        setUploading(true); // keep spinner; label updates via button text aren't shown here
+      const results = await Promise.all(picked.map(async (file) => {
         try {
-          const buffer = await drive.downloadFile(file.fileId);
-          const text = await parser.extractText(buffer);
-          if (!text.trim()) {
-            errors.push(`${file.fileName}: could not extract text (may be scanned or image-only)`);
-            continue;
+          const binary = atob(file.contentBase64);
+          const bytes = new Uint8Array(binary.length);
+          const CHUNK = 8192;
+          for (let b = 0; b < binary.length; b += CHUNK) {
+            const chunk = binary.slice(b, b + CHUNK);
+            for (let i = 0; i < chunk.length; i++) bytes[b + i] = chunk.charCodeAt(i);
           }
-          latest = await resumeStore.add({ id: file.fileId, subject: file.fileName, body: text });
+          const text = await parser.extractText(bytes.buffer);
+          return { file, text, error: null };
         } catch (err) {
-          errors.push(`${file.fileName}: ${err instanceof Error ? err.message : String(err)}`);
+          return { file, text: null, error: err instanceof Error ? err.message : String(err) };
         }
+      }));
+
+      for (const { file, text, error } of results) {
+        if (error) { errors.push(`${file.fileName}: ${error}`); continue; }
+        if (!text!.trim()) { errors.push(`${file.fileName}: could not extract text (may be scanned or image-only)`); continue; }
+        latest = await resumeStore.add({ id: file.fileId, subject: file.fileName, body: text! });
       }
 
       apply(latest);

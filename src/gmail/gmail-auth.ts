@@ -19,7 +19,7 @@ export function removeAuthToken(token: string): Promise<void> {
   });
 }
 
-const DRIVE_CONSENT_FLAG = 'driveScopeConsented';
+const DRIVE_CONSENT_FLAG = 'driveScopeConsented_v2';
 
 // First launch after the drive.file scope was added to the manifest: invalidate any
 // cached token so getAuthToken(interactive=true) triggers a fresh consent screen that

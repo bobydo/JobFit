@@ -3,11 +3,12 @@ import { PICKER_URL } from '../config';
 export interface PickedFile {
   fileId: string;
   fileName: string;
+  contentBase64: string;
 }
 
 interface PickerMessage {
   type: 'requestToken' | 'filesPicked' | 'pickerCancelled' | 'pickerError';
-  files?: Array<{ fileId: string; fileName: string }>;
+  files?: Array<{ fileId: string; fileName: string; contentBase64: string }>;
   error?: string;
 }
 
