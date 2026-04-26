@@ -1,98 +1,100 @@
-# Issue 1 Fix — Replace Gmail-label Resumes with Google Drive Picker
+# Issue 1 Fix — Google Drive Resume Picker
 
-Build succeeded. All extension-side work is done.
+## Current working state
 
-## Summary
-
-### Changed
-
-- [manifest.json](manifest.json) — added `drive.file` scope, `unlimitedStorage`, `apis.google.com` + Worker host perms, `externally_connectable` for the picker page
-- [src/popup/components/ResumesTab.tsx](src/popup/components/ResumesTab.tsx) — replaced Gmail fetch with **Add Resume from Drive** button + per-row Delete
-- [src/popup/components/App.tsx](src/popup/components/App.tsx) — dropped `labelExists('resumes')`, swapped cache → `getUploadedResumes()`, wired `onResumeDeleted` to clear selection
-- [src/popup/components/OnboardingScreen.tsx](src/popup/components/OnboardingScreen.tsx) — removed the `resumes` label block; privacy text updated
-- [src/gmail/gmail-auth.ts](src/gmail/gmail-auth.ts) — added `ensureDriveScopeConsent()` one-shot to refresh the token with the new scope
-- [src/config.ts](src/config.ts) — added `PICKER_URL` and `DRIVE_API_KEY`
-- [vite.config.ts](vite.config.ts) — custom plugin copies `pdf.worker.min.mjs` into `dist/assets/`; added `@drive` alias (mirrored in [tsconfig.json](tsconfig.json))
-- [package.json](package.json) — `pdfjs-dist` added
-
-### New
-
-- [src/drive/drive-client.ts](src/drive/drive-client.ts) — `downloadFile` / `getFileMetadata`
-- [src/drive/picker-bridge.ts](src/drive/picker-bridge.ts) — opens hosted picker window, handles `externally_connectable` messaging, resolves `{fileId, fileName}`
-- [src/utils/pdf-parser.ts](src/utils/pdf-parser.ts) — pdfjs-dist text extraction with extension-local worker
-- [src/storage/resume-store.ts](src/storage/resume-store.ts) — CRUD over `chrome.storage.local['uploadedResumes']`
-
-### Verified
-
-- `npm run build` succeeds; `dist/assets/pdf.worker.min.mjs` is emitted; built `manifest.json` has both OAuth scopes and the Worker origin wired into `host_permissions` + `externally_connectable`
-- `npm run typecheck` — only 3 pre-existing errors (match-analyzer line 192, ByokSettings unused React import); my changed files typecheck clean
-
-### Still needed before this works end-to-end (out-of-tree)
-
-1. Deploy the `/picker` HTML page on the Cloudflare Worker (`jobfit-signup.baoshenyi.workers.dev/picker`) — it must request the token from the extension via `chrome.runtime.sendMessage`, run `gapi.load('picker')`, post `filePicked`/`pickerCancelled` back, then close.
-2. Create a Google Cloud API key restricted to the Picker API and put it in `.env` as `VITE_DRIVE_API_KEY` so the picker page can use it.
-3. Enable the Google Picker API in the same GCP project as the OAuth client.
+- OAuth scope: `drive.readonly` (changed from `drive.file` which caused 404 on download)
+- Picker HTML served by Cloudflare Worker at `https://jobfit-signup.baoshenyi.workers.dev/picker`
+- Files download in parallel with a live progress bar
+- pdfjs warnings silenced (`verbosity: 0`)
+- Stale `activeResumeIds` pruned automatically on popup load
 
 ---
 
-## Data flow — picker URL
+## Select → Download flow
 
-The extension opens this URL in a new chrome window when the user clicks **Add Resume from Drive**:
-
-```
-https://jobfit-signup.baoshenyi.workers.dev/picker?extId=<chrome.runtime.id>
-└────────────────┬─────────────────────────┘└──┬───┘└─────────────┬──────────────┘
-        Cloudflare Worker host              path       extension's runtime ID
-```
-
-The `extId` query param is the only way the picker page (a normal webpage, no relationship to the extension) learns which extension to talk back to. The extension passes its own `chrome.runtime.id`.
-
-### Step-by-step (what happens when user clicks "Add Resume from Drive")
-
-- Extension opens `https://jobfit-signup.baoshenyi.workers.dev/picker?extId=<id>` in a new window
-- Worker returns the picker HTML page
-- Picker page asks extension for OAuth token via `chrome.runtime.sendMessage`
-- Extension replies with token
-- Picker page loads Google Drive file browser (PDFs only)
-- User picks a file → picker sends `{fileId, fileName}` back to extension → window closes
-- Extension downloads the file from Drive, parses PDF text, saves to local storage, shows in UI
+1. User clicks **+ Add Resume from Drive** in the Resumes tab
+2. `ensureDriveScopeConsent()` — invalidates cached token once so Chrome prompts for the new `drive.readonly` scope (flag key: `driveScopeConsented_v2`)
+3. `getAuthToken(true)` — gets fresh OAuth token with `gmail.readonly` + `drive.readonly`
+4. `DrivePickerBridge.pick(token)` — opens `https://jobfit-signup.baoshenyi.workers.dev/picker?extId=<id>` as a Chrome popup window
+5. Picker page sends `{ type: 'requestToken' }` to extension via `chrome.runtime.sendMessage` (`externally_connectable`)
+6. Extension replies with the OAuth token
+7. Google Picker loads (filtered to PDFs, multi-select enabled)
+8. User selects files → all files download **in parallel** via Drive API v3 (`/drive/v3/files/{id}?alt=media`)
+9. Progress bar in picker window advances as each file completes; chunked base64 encoding per file
+10. Picker page sends `{ type: 'filesPicked', files: [...] }` back to extension; window closes
+11. Extension decodes base64 + runs `PdfParser.extractText()` in parallel for all files
+12. `resumeStore.add()` saves each resume sequentially (avoids storage write races)
+13. Resumes appear in UI with checkboxes; stale selection IDs pruned automatically
 
 ---
 
-### Failure recovery — redeploy the worker
+## Google Cloud Console — required setup
 
-Use this if `/picker` stops working after a code change.
+| What | Where |
+|------|-------|
+| OAuth 2.0 Client ID (Chrome extension type) | https://console.cloud.google.com → APIs & Services → Credentials |
+| Google Drive API enabled | APIs & Services → Enabled APIs |
+| Google Picker API enabled | APIs & Services → Enabled APIs |
+| Scopes in manifest | `gmail.readonly`, `drive.readonly` |
 
-**Check it's broken:**
+---
+
+## Cloudflare Worker
+
+| | |
+|-|-|
+| **Base URL** | https://jobfit-signup.baoshenyi.workers.dev |
+| **GET /picker** | Serves picker HTML page to extension |
+| **POST /signup** | Writes user email to KV store |
+| **Dashboard** | https://dash.cloudflare.com → Workers & Pages → `jobfit-signup` |
+| **Source** | [worker/src/](worker/src/) — `index.ts` routes, `picker.ts` serves HTML, `signup.ts` handles KV |
+
+---
+
+## Rebuild + redeploy commands
+
 ```bash
-curl -i 'https://jobfit-signup.baoshenyi.workers.dev/picker?extId=test'
-# Bad: 405 Method Not Allowed or wrong HTML
-# Good: 200 with <title>JobFit — Pick Resume from Drive</title>
-```
+# 1. Rebuild Chrome extension
+cd d:/JobFit
+npm run build
+# Then go to chrome://extensions and click ↺ (reload) on JobFit
 
-**Redeploy:**
-```bash
+# 2. Deploy Cloudflare Worker
 cd d:/JobFit/worker
 npx wrangler deploy
-```
-- If network timeout → retry, or check internet/VPN
-- If login expired → `npx wrangler login` first, then redeploy
 
-**Check signup still works after redeploy:**
-```bash
+# 3. If wrangler login has expired
+npx wrangler login        # opens browser for approval
+npx wrangler deploy
+
+# 4. Verify picker is live
+curl -i 'https://jobfit-signup.baoshenyi.workers.dev/picker?extId=test'
+# Good: 200 with <title>JobFit — Pick Resume from Drive</title>
+
+# 5. Verify signup still works
 curl -i -X POST -H 'Content-Type: application/json' \
   -d '{"email":"smoke@test.dev"}' \
   'https://jobfit-signup.baoshenyi.workers.dev/signup'
 # Good: 200 OK
 ```
 
-**Check worker source:** [worker/src/](worker/src/) in this repo — `index.ts` routes, `pickup.ts` serves HTML, `signup.ts` handles email KV writes
+---
 
-**Cloudflare dashboard (view logs / KV / secrets):**
-- https://dash.cloudflare.com → Workers & Pages → `jobfit-signup`
+## Failure recovery
 
-**Wrangler login (if expired):**
+### Picker shows "token is not defined" or 404 on download
+- Check the OAuth scope in `manifest.json` is `drive.readonly` (not `drive.file`)
+- Bump `DRIVE_CONSENT_FLAG` in `src/gmail/gmail-auth.ts` to force re-consent, rebuild, reload
+
+### Checkboxes show wrong count (e.g. "2/2 selected" but all unchecked)
+- Stale `activeResumeIds` in storage — the app prunes them automatically on next load
+- Manual fix: chrome://extensions → JobFit → Inspect popup → **Application** → Extension Local Storage → delete `activeResumeIds`
+
+### Worker not responding
 ```bash
-npx wrangler login
-# Approves in browser → then redeploy
+curl -i 'https://jobfit-signup.baoshenyi.workers.dev/picker?extId=test'
+# If not 200: redeploy with `cd d:/JobFit/worker && npx wrangler deploy`
 ```
+
+### pdfjs warnings in chrome://extensions errors panel
+- `verbosity: 0` is set in `src/utils/pdf-parser.ts` — rebuild and reload if warnings reappear
