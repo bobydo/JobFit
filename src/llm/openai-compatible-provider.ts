@@ -1,5 +1,5 @@
 import type { LLMChatResult, LLMMessage } from './llm-router';
-import { GROQ_DEFAULT_MODEL, OPENAI_DEFAULT_MODEL } from '../config';
+import { GROQ_DEFAULT_MODEL, OPENAI_DEFAULT_MODEL, LLM_MAX_RETRIES, LLM_RETRY_FALLBACK_WAIT_MS } from '../config';
 
 const PROVIDER_BASE_URLS: Record<string, string> = {
   groq:   'https://api.groq.com/openai/v1',
@@ -11,7 +11,6 @@ const PROVIDER_DEFAULT_MODELS: Record<string, string> = {
   openai: OPENAI_DEFAULT_MODEL,
 };
 
-const MAX_RETRIES = 5;
 
 export async function openaiCompatibleChat(
   provider: 'groq' | 'openai',
@@ -23,7 +22,7 @@ export async function openaiCompatibleChat(
 
   const startTime = new Date();
 
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+  for (let attempt = 0; attempt <= LLM_MAX_RETRIES; attempt++) {
     const res = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -34,10 +33,10 @@ export async function openaiCompatibleChat(
     });
 
     if (res.status === 429) {
-      if (attempt === MAX_RETRIES) throw new Error(`${provider} rate limit — too many retries. Try again in a minute.`);
+      if (attempt === LLM_MAX_RETRIES) throw new Error(`${provider} rate limit — too many retries. Try again in a minute.`);
       const errText = await res.text().catch(() => '');
       const match = errText.match(/try again in ([\d.]+)s/i);
-      const waitMs = match ? (parseFloat(match[1]) + 1) * 1000 : 15000;
+      const waitMs = match ? (parseFloat(match[1]) + 1) * 1000 : LLM_RETRY_FALLBACK_WAIT_MS;
       await new Promise(r => setTimeout(r, waitMs));
       continue;
     }
@@ -63,5 +62,5 @@ export async function openaiCompatibleChat(
     };
   }
 
-  throw new Error(`${provider} failed after ${MAX_RETRIES} retries`);
+  throw new Error(`${provider} failed after ${LLM_MAX_RETRIES} retries`);
 }

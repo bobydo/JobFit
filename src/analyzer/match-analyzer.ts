@@ -7,6 +7,7 @@ import {
   GROQ_DEFAULT_MODEL, OPENAI_DEFAULT_MODEL, ANTHROPIC_DEFAULT_MODEL,
   OLLAMA_MODEL,
   AUTH_REQUIRED_DOMAINS,
+  RESUME_TEXT_MAX_CHARS, JOB_TEXT_MAX_CHARS,
 } from '../config';
 import { getDailyCount, incrementDailyCount } from '../storage/cache-store';
 import type { Resume, JobEmail, AnalysisResult } from '../popup/types';
@@ -29,8 +30,8 @@ function getModelName(config: AppConfig): string {
 }
 
 function buildPrompt(resume: Resume, job: JobEmail): string {
-  const resumeText = resume.body.trim().slice(0, 6000);
-  const jobText = job.body.trim().slice(0, 4000);
+  const resumeText = resume.body.trim().slice(0, RESUME_TEXT_MAX_CHARS);
+  const jobText = job.body.trim().slice(0, JOB_TEXT_MAX_CHARS);
   return [
     `Resume (${resume.subject}):`,
     resumeText,

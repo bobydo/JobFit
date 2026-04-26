@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getConfig, saveConfig, AppConfig, LLMMode, ByokProvider } from '@storage/config-store';
-import { WORKER_URL, STRIPE_PRO_URL, OLLAMA_MODEL, OLLAMA_BASE_URL, LANGFUSE_BASE_URL, DEV_MODE, AUTH_REQUIRED_DOMAINS } from '../../../config';
+import { WORKER_URL, STRIPE_PRO_URL, OLLAMA_MODEL, OLLAMA_BASE_URL, LANGFUSE_BASE_URL, DEV_MODE, AUTH_REQUIRED_DOMAINS, OPENAI_DEFAULT_MODEL, DAILY_ANALYSIS_LIMIT } from '../../../config';
 import { recheckSites as _recheckSites } from '@utils/SettingsPanel/siteSignIn';
 import { validateApiKey } from '@utils/SettingsPanel/APICall';
 import { settingsPanelStyles as s } from '../shared.styles';
@@ -155,19 +155,27 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={s.sectionLabel}>LLM Mode</div>
 
-          {/* JobFit Cloud */}
+          {/* JobFit Pro */}
           <label style={s.radioRow}>
             <input type="radio" checked={mode === 'jobfit-cloud'} onChange={() => setMode('jobfit-cloud')} />
-            <span style={s.radioLabel}>JobFit Cloud</span>
+            <span style={s.radioLabel}>JobFit Pro</span>
           </label>
 
           {mode === 'jobfit-cloud' && (
             <div style={s.indent}>
               {/* Plan card */}
               <div style={{ ...s.planCard, ...s.planCardPro, marginBottom: 10 }}>
-                <div style={s.planName}>Pro</div>
-                <div style={s.planPrice}>$11 <span style={s.planPer}>/mo</span></div>
-                <div style={s.planDetail}>2 resumes · 50 analyses/day · daily refresh</div>
+                <div style={s.planName}>JobFit Pro</div>
+                <div style={s.planPrice}>$11 CAD <span style={s.planPer}>/mo</span></div>
+                <ul style={{ margin: '8px 0', paddingLeft: 16, fontSize: 11, lineHeight: 1.7 }}>
+                  <li>No API key required</li>
+                  <li>Powered by {OPENAI_DEFAULT_MODEL}</li>
+                  <li>{DAILY_ANALYSIS_LIMIT} analyses/day</li>
+                  <li>Role-weighted scoring (skills · experience · tools · domain)</li>
+                  <li>Clean summary results</li>
+                  <li>High-match tracking — jobs ≥85% saved for tips</li>
+                  <li>Fixed cost — no per-token surprises</li>
+                </ul>
                 <button style={{ ...s.subscribeBtn, ...s.subscribeBtnPro }} onClick={() => openStripe(STRIPE_PRO_URL)}>
                   Subscribe →
                 </button>

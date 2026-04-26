@@ -1,0 +1,10 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "entry": [
+    "src/background/service-worker.ts",
+    "src/popup/main.tsx",
+    "src/analyzer/match-analyzer.ts"
+  ],
+  "project": ["src/**/*.{ts,tsx}"],
+  "ignoreDependencies": ["wrangler"]
+}

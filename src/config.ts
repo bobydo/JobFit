@@ -58,9 +58,18 @@ export const ANALYSIS_POPUP_MARGIN = 16; // gap from screen edge (px)
 
 // ── Daily analysis limit ──────────────────────────────────────────────────
 // Derived — adjust DEFAULT_MAX_JOB_POSTS to scale this automatically
-export const DAILY_ANALYSIS_LIMIT = DEFAULT_MAX_RESUMES * DEFAULT_MAX_JOB_POSTS; // 2 × 60 = 120 => $3 per month
+export const DAILY_ANALYSIS_LIMIT    = DEFAULT_MAX_RESUMES * DEFAULT_MAX_JOB_POSTS; // 2 × 60 = 120
+export const DAILY_WARN_THRESHOLD    = Math.floor(DAILY_ANALYSIS_LIMIT * 0.9);      // 108 — show yellow warning
+export const LEAD_CAPTURE_MIN_SCORE  = 85; // save to KV when score ≥ this
+
+// ── Prompt text limits ────────────────────────────────────────────────────
+export const RESUME_TEXT_MAX_CHARS = 6000;
+export const JOB_TEXT_MAX_CHARS    = 4000;
+
+// ── LLM retry policy ─────────────────────────────────────────────────────
+export const LLM_MAX_RETRIES             = 5;
+export const LLM_RETRY_FALLBACK_WAIT_MS  = 15_000;
 
 // ── Dev / test ─────────────────────────────────────────────────────────────
-export const DEV_MODE     = false; // set true before dev builds — shows Ollama + Langfuse in Settings
-export const TEST_LOG_DIR = 'src/logs';
+export const DEV_MODE = false; // set true before dev builds — shows Ollama + Langfuse in Settings
 

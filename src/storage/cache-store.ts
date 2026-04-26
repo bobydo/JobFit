@@ -18,10 +18,6 @@ export async function setCached<T>(key: string, data: T): Promise<void> {
   await chrome.storage.local.set({ [key]: entry });
 }
 
-export async function clearCached(...keys: string[]): Promise<void> {
-  await chrome.storage.local.remove(keys);
-}
-
 // ── Processed job post IDs ────────────────────────────────────────────────
 
 const PROCESSED_KEY = 'processedJobIds';
@@ -35,10 +31,6 @@ export async function markProcessed(...ids: string[]): Promise<void> {
   const existing = await getProcessedIds();
   const merged = [...new Set([...existing, ...ids])];
   await chrome.storage.local.set({ [PROCESSED_KEY]: merged });
-}
-
-export async function clearProcessedIds(): Promise<void> {
-  await chrome.storage.local.remove(PROCESSED_KEY);
 }
 
 // ── Analysis results ──────────────────────────────────────────────────────
@@ -60,10 +52,6 @@ export async function saveAnalysisResults(
   results: import('../popup/types').AnalysisResult[]
 ): Promise<void> {
   await chrome.storage.local.set({ [RESULTS_KEY]: results });
-}
-
-export async function clearAnalysisResults(): Promise<void> {
-  await chrome.storage.local.remove(RESULTS_KEY);
 }
 
 // ── Daily analysis counter ────────────────────────────────────────────────
