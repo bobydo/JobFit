@@ -1,0 +1,17 @@
+name = "jobfit-signup"
+main = "src/index.ts"
+compatibility_date = "2025-04-01"
+
+# Fill in account_id from Cloudflare dashboard → right-side panel → Account ID
+# (Optional if your wrangler login has access to only one account.)
+# account_id = "..."
+
+# Bindings
+[[kv_namespaces]]
+binding = "SIGNUPS"
+# Fill in the existing namespace ID from Cloudflare dashboard → Workers & Pages → KV → SIGNUPS → ID
+# (Or run `npx wrangler kv:namespace list` after `wrangler login` to discover it.)
+id = "55b9809c9a724f1a9aa850059f056605"
+
+# Note: Wrangler's default rules already treat *.html as Text modules,
+# so `import pickerHtml from './picker.html'` works out of the box.

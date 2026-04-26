@@ -6,17 +6,18 @@ export interface PickedFile {
 }
 
 interface PickerMessage {
-  type: 'requestToken' | 'filePicked' | 'pickerCancelled' | 'pickerError';
-  fileId?: string;
-  fileName?: string;
+  type: 'requestToken' | 'filesPicked' | 'pickerCancelled' | 'pickerError';
+  files?: Array<{ fileId: string; fileName: string }>;
   error?: string;
 }
 
 export class DrivePickerBridge {
   private _token: string | null = null;
   private _pickerWindowId: number | null = null;
+  private _resolvePick: ((files: PickedFile[] | null) => void) | null = null;
+  private _rejectPick: ((err: Error) => void) | null = null;
 
-  async pick(token: string): Promise<PickedFile | null> {
+  async pick(token: string): Promise<PickedFile[] | null> {
     this._token = token;
     const listener = this._handleExternalMessage;
     chrome.runtime.onMessageExternal.addListener(listener);
@@ -31,7 +32,7 @@ export class DrivePickerBridge {
       });
       this._pickerWindowId = win.id ?? null;
 
-      return await new Promise<PickedFile | null>((resolve, reject) => {
+      return await new Promise<PickedFile[] | null>((resolve, reject) => {
         const onWindowRemoved = (removedId: number) => {
           if (removedId === this._pickerWindowId) {
             chrome.windows.onRemoved.removeListener(onWindowRemoved);
@@ -40,9 +41,9 @@ export class DrivePickerBridge {
         };
         chrome.windows.onRemoved.addListener(onWindowRemoved);
 
-        this._resolvePick = (file) => {
+        this._resolvePick = (files) => {
           chrome.windows.onRemoved.removeListener(onWindowRemoved);
-          resolve(file);
+          resolve(files);
         };
         this._rejectPick = (err) => {
           chrome.windows.onRemoved.removeListener(onWindowRemoved);
@@ -58,9 +59,6 @@ export class DrivePickerBridge {
     }
   }
 
-  private _resolvePick: ((file: PickedFile | null) => void) | null = null;
-  private _rejectPick: ((err: Error) => void) | null = null;
-
   private _handleExternalMessage = (
     msg: PickerMessage,
     _sender: chrome.runtime.MessageSender,
@@ -70,8 +68,8 @@ export class DrivePickerBridge {
       sendResponse({ token: this._token });
       return false;
     }
-    if (msg.type === 'filePicked' && msg.fileId && msg.fileName) {
-      this._resolvePick?.({ fileId: msg.fileId, fileName: msg.fileName });
+    if (msg.type === 'filesPicked' && msg.files?.length) {
+      this._resolvePick?.(msg.files as PickedFile[]);
       this._closePickerWindow();
       sendResponse({ ok: true });
       return false;

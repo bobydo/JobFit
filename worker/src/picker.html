@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>JobFit — Pick Resume from Drive</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 24px;
+      background: #f5f7fa;
+      color: #333;
+    }
+    h1 { font-size: 16px; margin: 0 0 12px; color: #1a73e8; }
+    #status { font-size: 13px; line-height: 1.5; }
+    #status.error { color: #c62828; }
+    .hint { font-size: 11px; color: #888; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <h1>JobFit — pick a resume PDF from your Google Drive</h1>
+  <div id="status">Connecting to extension…</div>
+  <div class="hint">If the picker does not open, close this window and try again from the JobFit popup.</div>
+
+  <script src="https://apis.google.com/js/api.js"></script>
+  <script>
+    (function () {
+      var statusEl = document.getElementById('status');
+
+      function setStatus(msg, isError) {
+        statusEl.textContent = msg;
+        statusEl.className = isError ? 'error' : '';
+      }
+
+      function getExtId() {
+        return new URLSearchParams(window.location.search).get('extId');
+      }
+
+      function send(extId, msg) {
+        return new Promise(function (resolve) {
+          try {
+            if (!window.chrome || !chrome.runtime || !chrome.runtime.sendMessage) {
+              resolve({ ok: false, error: 'chrome.runtime not available — open this from the JobFit extension' });
+              return;
+            }
+            chrome.runtime.sendMessage(extId, msg, function (response) {
+              if (chrome.runtime.lastError) {
+                resolve({ ok: false, error: chrome.runtime.lastError.message || 'sendMessage failed' });
+              } else {
+                resolve({ ok: true, response: response });
+              }
+            });
+          } catch (err) {
+            resolve({ ok: false, error: String(err && err.message ? err.message : err) });
+          }
+        });
+      }
+
+      async function notifyError(extId, message) {
+        await send(extId, { type: 'pickerError', error: message });
+      }
+
+      async function start() {
+        var extId = getExtId();
+        if (!extId) {
+          setStatus('Missing extId param. Open this page from the JobFit extension, not directly.', true);
+          return;
+        }
+        setStatus('Requesting auth token from extension…');
+        var tokenResult = await send(extId, { type: 'requestToken' });
+        if (!tokenResult.ok || !tokenResult.response || !tokenResult.response.token) {
+          var msg = 'Could not get auth token: ' + (tokenResult.error || 'extension did not respond');
+          setStatus(msg, true);
+          await notifyError(extId, msg);
+          return;
+        }
+        var token = tokenResult.response.token;
+
+        setStatus('Loading Google Drive picker…');
+        gapi.load('picker', { callback: function () { buildPicker(extId, token); } });
+      }
+
+      function buildPicker(extId, token) {
+        try {
+          var view = new google.picker.DocsView()
+            .setIncludeFolders(true)
+            .setSelectFolderEnabled(false)
+            .setMimeTypes('application/pdf');
+
+          var picker = new google.picker.PickerBuilder()
+            .setOAuthToken(token)
+            .addView(view)
+            .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+            .setCallback(function (data) { onPickerCallback(extId, data); })
+            .build();
+
+          picker.setVisible(true);
+          setStatus('Pick a PDF resume to continue.');
+        } catch (err) {
+          var msg = 'Failed to build picker: ' + (err && err.message ? err.message : String(err));
+          setStatus(msg, true);
+          notifyError(extId, msg);
+        }
+      }
+
+      async function onPickerCallback(extId, data) {
+        if (data.action === google.picker.Action.PICKED) {
+          var docs = data.docs || [];
+          if (!docs.length) {
+            await notifyError(extId, 'Picker returned no documents');
+            window.close();
+            return;
+          }
+          var files = docs.map(function(d) { return { fileId: d.id, fileName: d.name }; });
+          setStatus('Sending ' + files.length + ' file(s) to extension…');
+          await send(extId, { type: 'filesPicked', files: files });
+          setStatus('Done. Closing…');
+          setTimeout(function () { window.close(); }, 200);
+        } else if (data.action === google.picker.Action.CANCEL) {
+          await send(extId, { type: 'pickerCancelled' });
+          window.close();
+        }
+      }
+
+      start();
+    })();
+  </script>
+</body>
+</html>

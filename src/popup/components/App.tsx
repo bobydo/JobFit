@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { labelExists, getGmailProfile } from '@gmail/gmail-client';
 import { getAuthToken, removeAuthToken } from '@gmail/gmail-auth';
 import { getAnalysisResults, saveAnalysisResults } from '@storage/cache-store';
-import { getUploadedResumes } from '@storage/resume-store';
+import { ResumeStore } from '@storage/resume-store';
+
+const resumeStore = new ResumeStore();
 import { getConfig, saveConfig } from '@storage/config-store';
 import { fetchJobContent, analyzePair } from '@analyzer/match-analyzer';
 import OnboardingScreen from './OnboardingScreen';
@@ -50,7 +52,7 @@ export default function App() {
       if (stored.activeResumeIds?.length) setActiveResumeIds(stored.activeResumeIds);
       setStorageReady(true);
     });
-    getUploadedResumes().then((stored) => { if (stored.length) setResumesData(stored); });
+    resumeStore.getAll().then((stored) => { if (stored.length) setResumesData(stored); });
     getConfig().then(async (cfg) => {
       setMaxResumes(cfg.maxResumes);
       const ok = await checkApiReady(cfg);

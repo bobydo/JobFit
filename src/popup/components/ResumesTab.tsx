@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { getAuthToken, ensureDriveScopeConsent } from '@gmail/gmail-auth';
 import { DrivePickerBridge } from '@drive/picker-bridge';
-import { downloadFile } from '@drive/drive-client';
-import { extractText } from '@utils/pdf-parser';
-import { getUploadedResumes, addResume, deleteResume } from '@storage/resume-store';
+import { DriveClient } from '@drive/drive-client';
+import { PdfParser } from '@utils/pdf-parser';
+import { ResumeStore } from '@storage/resume-store';
+
+const resumeStore = new ResumeStore();
 import type { Resume } from '../types';
 import { resumesStyles as s, shared } from './shared.styles';
 
@@ -31,7 +33,7 @@ export default function ResumesTab({ activeResumeIds, onToggle, cachedData, onDa
   async function load() {
     setStatus('loading');
     try {
-      const stored = await getUploadedResumes();
+      const stored = await resumeStore.getAll();
       apply(stored);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -53,18 +55,31 @@ export default function ResumesTab({ activeResumeIds, onToggle, cachedData, onDa
       const token = await getAuthToken(true);
       const bridge = new DrivePickerBridge();
       const picked = await bridge.pick(token);
-      if (!picked) return; // user cancelled
-      const buffer = await downloadFile(picked.fileId, token);
-      const text = await extractText(buffer);
-      if (!text.trim()) {
-        throw new Error('Could not extract text from that PDF (it may be scanned or image-only).');
+      if (!picked || picked.length === 0) return; // user cancelled
+
+      const drive = new DriveClient(token);
+      const parser = new PdfParser();
+      const errors: string[] = [];
+      let latest: Resume[] = resumes;
+
+      for (let i = 0; i < picked.length; i++) {
+        const file = picked[i];
+        setUploading(true); // keep spinner; label updates via button text aren't shown here
+        try {
+          const buffer = await drive.downloadFile(file.fileId);
+          const text = await parser.extractText(buffer);
+          if (!text.trim()) {
+            errors.push(`${file.fileName}: could not extract text (may be scanned or image-only)`);
+            continue;
+          }
+          latest = await resumeStore.add({ id: file.fileId, subject: file.fileName, body: text });
+        } catch (err) {
+          errors.push(`${file.fileName}: ${err instanceof Error ? err.message : String(err)}`);
+        }
       }
-      const next = await addResume({
-        id: picked.fileId,
-        subject: picked.fileName,
-        body: text,
-      });
-      apply(next);
+
+      apply(latest);
+      if (errors.length > 0) setError(errors.join('\n'));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -73,7 +88,7 @@ export default function ResumesTab({ activeResumeIds, onToggle, cachedData, onDa
   }
 
   async function handleDelete(id: string) {
-    const next = await deleteResume(id);
+    const next = await resumeStore.remove(id);
     apply(next);
     onResumeDeleted(id);
     if (expandedId === id) setExpandedId(null);
