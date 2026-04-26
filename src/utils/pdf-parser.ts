@@ -3,7 +3,7 @@ export class PdfParser {
     const pdfjs = await import('pdfjs-dist');
     pdfjs.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('assets/pdf.worker.min.mjs');
 
-    const doc = await pdfjs.getDocument({ data: buffer }).promise;
+    const doc = await pdfjs.getDocument({ data: buffer, verbosity: 0 }).promise;
     const pageTexts: string[] = [];
     for (let i = 1; i <= doc.numPages; i++) {
       const page = await doc.getPage(i);

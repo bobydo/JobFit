@@ -215,12 +215,17 @@ export default function App() {
     window.close();
   }
 
+  // Prune stale IDs that no longer match any stored resume
+  useEffect(() => {
+    if (!storageReady || !resumesData) return;
+    const valid = new Set(resumesData.map((r) => r.id));
+    setActiveResumeIds((prev) => prev.filter((id) => valid.has(id)));
+  }, [resumesData, storageReady]);
+
   // Persist selection — only after storage has been restored
   useEffect(() => {
     if (!storageReady) return;
-    if (activeResumeIds.length > 0) {
-      chrome.storage.local.set({ activeResumeIds });
-    }
+    chrome.storage.local.set({ activeResumeIds });
   }, [activeResumeIds, storageReady]);
 
   function toggleResume(id: string) {
