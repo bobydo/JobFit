@@ -24,8 +24,6 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [langfusePublicKey, setLangfusePublicKey] = useState('');
   const [langfuseSecretKey, setLangfuseSecretKey] = useState('');
   const [langfuseStatus, setLangfuseStatus] = useState<'idle' | 'ok' | 'error'>('idle');
-  const [saveFolder, setSaveFolder] = useState('jobfit');
-  const [saved, setSaved] = useState(false);
   const [siteStatus, setSiteStatus] = useState<Record<string, boolean | null>>({});
   const [siteChecking, setSiteChecking] = useState(false);
 
@@ -36,7 +34,6 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
       setTokenInput(cfg.subscriptionToken ?? '');
       setByokProvider(cfg.byokProvider ?? 'groq');
       setApiKey(cfg.apiKey ?? '');
-      setSaveFolder(cfg.saveFolder);
       setOllamaModel(cfg.ollamaModel ?? 'qwen3:8b');
       setOllamaBaseUrl(cfg.ollamaBaseUrl ?? 'http://localhost:11434');
       setLangfuseEnabled(cfg.langfuseEnabled ?? false);
@@ -139,14 +136,6 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   async function handleLangfuseToggle(enabled: boolean) {
     setLangfuseEnabled(enabled);
     await saveConfig({ langfuseEnabled: enabled });
-  }
-
-  async function handleSaveGeneral() {
-    await saveConfig({
-      saveFolder: saveFolder.trim() || 'jobfit',
-    });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
   }
 
   if (!config) return <div style={s.loading}>Loading…</div>;
@@ -355,20 +344,6 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
           })}
         </div>
         </div>{/* end flex row */}
-
-        {/* ── General ── */}
-        <div style={s.section}>
-          <div style={s.sectionLabel}>General</div>
-
-          <div style={s.fieldLabel}>Log and Download folder</div>
-          <div style={s.hint}>Results saved to Downloads/<span style={{ fontStyle: 'italic' }}>{saveFolder || 'jobfit'}</span>/</div>
-          <input style={s.input} type="text" value={saveFolder} onChange={(e) => setSaveFolder(e.target.value)} />
-
-          <div style={{ marginTop: 10 }}>
-            <button style={s.saveBtn} onClick={handleSaveGeneral}>Save</button>
-            {saved && <span style={{ ...s.ok, marginLeft: 8 }}>Saved</span>}
-          </div>
-        </div>
 
       </div>
 

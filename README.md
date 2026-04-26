@@ -135,5 +135,8 @@ The Planning pattern (chaining multiple LLM calls where each step feeds the next
 | Free to run after hardware cost | Need to keep machine running |
 | Works fully offline, no rate limits | You manage everything yourself |
 
+## LLM API Cost
+![1777221280973](image/README/1777221280973.png)
+
 
 

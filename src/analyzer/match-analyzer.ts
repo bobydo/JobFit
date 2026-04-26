@@ -1,6 +1,5 @@
 import { llmChat } from '../llm/llm-router';
 import { fetchJobPage, fetchJobPageViaTab } from '@utils/job_email/job-page-fetcher';
-import { savePromptLog } from '@utils/prompt-logger';
 import { traceLlmCall } from '@utils/langfuse-tracer';
 import {
   LANGFUSE_ENABLED, LANGFUSE_BASE_URL, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY,
@@ -41,6 +40,7 @@ function buildPrompt(resume: Resume, job: JobEmail): string {
     '',
     'Scoring rules:',
     '- Score 0–100 reflecting overall fit.',
+    '- First, identify whether this role is skills-heavy, experience-heavy, tools-heavy, or domain-heavy, then weight your evaluation accordingly.',
     '- Hard missing requirements (named technology + required years) reduce the score significantly.',
     '- Genuine transferable skills (architecture, AI/LLM, CI/CD, system integration) count toward the score.',
     '- Do NOT apply a hard cap — balance gaps against real strengths.',
@@ -104,22 +104,6 @@ export async function analyzePair(
   const result = await llmChat(config, messages);
   const { matchScore, matchSummary, skillsGaps } = parseResponse(result.content);
   const model = getModelName(config);
-
-  // Save prompt log as JSON to Downloads/saveFolder/logs/
-  savePromptLog({
-    timestamp: result.startTime.toISOString(),
-    jobId: job.id,
-    resumeSubject: resume.subject,
-    jobSubject: job.subject,
-    jobBody: job.body,
-    model,
-    messages,
-    rawResponse: result.content,
-    parsedResult: { matchScore, matchSummary, skillsGaps },
-    promptTokens: result.promptTokens,
-    completionTokens: result.completionTokens,
-    latencyMs: result.latencyMs,
-  }, config.saveFolder);
 
   // Send trace to Langfuse if enabled (build-time flag AND runtime toggle)
   const lfHost   = config.langfuseHost      || LANGFUSE_BASE_URL;

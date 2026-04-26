@@ -24,7 +24,6 @@ export const ANTHROPIC_DEFAULT_MODEL = 'claude-haiku-4-5-20251001';
 export const DEFAULT_MAX_RESUMES   = 2;   // 1–5
 export const DEFAULT_MAX_JOB_POSTS = 60;  // 1–100
 export const DEFAULT_STALE_JOB_DAYS = 10; // 1–90
-export const DEFAULT_SAVE_FOLDER   = 'jobfit';
 // Gmail label cache (resumes/jobposts) — re-fetches after 5 min
 export const GMAIL_CACHE_TTL_MS = 5 * 60 * 1000;  
 // Analysis results — auto-cleared after 1 day
@@ -59,7 +58,7 @@ export const ANALYSIS_POPUP_MARGIN = 16; // gap from screen edge (px)
 
 // ── Daily analysis limit ──────────────────────────────────────────────────
 // Derived — adjust DEFAULT_MAX_JOB_POSTS to scale this automatically
-export const DAILY_ANALYSIS_LIMIT = DEFAULT_MAX_RESUMES * DEFAULT_MAX_JOB_POSTS; // 2 × 60 = 120
+export const DAILY_ANALYSIS_LIMIT = DEFAULT_MAX_RESUMES * DEFAULT_MAX_JOB_POSTS; // 2 × 60 = 120 => $3 per month
 
 // ── Dev / test ─────────────────────────────────────────────────────────────
 export const DEV_MODE     = false; // set true before dev builds — shows Ollama + Langfuse in Settings
