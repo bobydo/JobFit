@@ -17,6 +17,7 @@ export default function App() {
 
   const [activeTab,    setActiveTab]    = useState<Tab>('resumes');
   const [showSettings, setShowSettings] = useState(false);
+  const [focusPro,     setFocusPro]     = useState(false);
   const [jobEmailsData, setJobEmailsData] = useState<JobEmail[] | null>(null);
 
   const {
@@ -73,7 +74,7 @@ export default function App() {
       )}
 
       {showSettings ? (
-        <SettingsPanel onClose={() => { setShowSettings(false); recheckApi(); }} />
+        <SettingsPanel focusPro={focusPro} onClose={() => { setShowSettings(false); setFocusPro(false); recheckApi(); }} />
       ) : (
         <>
           <div style={styles.tabs}>
@@ -121,6 +122,7 @@ export default function App() {
                 error={analyzeError}
                 isPro={mode === 'jobfit-cloud'}
                 onClear={clearResults}
+                onUpgrade={() => { setFocusPro(true); setShowSettings(true); }}
               />
             )}
           </div>

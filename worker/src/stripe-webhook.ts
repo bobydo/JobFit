@@ -1,5 +1,5 @@
 import type { Env } from './index';
-import { putSubscription, json } from './validate-token';
+import { putSubscription, emailKey } from './validate-token';
 
 async function verifyStripeSignature(payload: string, sigHeader: string, secret: string): Promise<boolean> {
   const parts     = sigHeader.split(',');
@@ -61,12 +61,34 @@ export async function handleStripeWebhook(request: Request, env: Env): Promise<R
       const token = crypto.randomUUID();
       const today = new Date().toISOString().slice(0, 10);
       await putSubscription(token, { plan: 'pro', email, customerId, stripeId, dailyCount: 0, lastReset: today }, env);
+      await env.SUBSCRIPTIONS.put(emailKey(email), token); // email index for auto-detect
       await sendTokenEmail(email, token, env.RESEND_API_KEY);
     }
   }
 
+  // Also revoke when user cancels via portal (cancel_at_period_end = true)
+  if (event.type === 'customer.subscription.updated') {
+    const obj = event.data.object as Record<string, unknown>;
+    if (obj.cancel_at_period_end === true) {
+      const stripeId = (obj.id as string) ?? '';
+      const list = await env.SUBSCRIPTIONS.list();
+      await Promise.all(
+        list.keys.map(async ({ name }) => {
+          const raw = await env.SUBSCRIPTIONS.get(name);
+          if (!raw) return;
+          try {
+            const sub = JSON.parse(raw) as { stripeId?: string; email?: string };
+            if (sub.stripeId === stripeId) {
+              await env.SUBSCRIPTIONS.delete(name);
+              if (sub.email) await env.SUBSCRIPTIONS.delete(emailKey(sub.email));
+            }
+          } catch {}
+        })
+      );
+    }
+  }
+
   if (event.type === 'customer.subscription.deleted') {
-    // Revoke by deleting all tokens for this subscription — iterate via list
     const stripeId = (event.data.object.id as string) ?? '';
     const list = await env.SUBSCRIPTIONS.list();
     await Promise.all(
@@ -74,8 +96,11 @@ export async function handleStripeWebhook(request: Request, env: Env): Promise<R
         const raw = await env.SUBSCRIPTIONS.get(name);
         if (!raw) return;
         try {
-          const sub = JSON.parse(raw) as { stripeId?: string };
-          if (sub.stripeId === stripeId) await env.SUBSCRIPTIONS.delete(name);
+          const sub = JSON.parse(raw) as { stripeId?: string; email?: string };
+          if (sub.stripeId === stripeId) {
+              await env.SUBSCRIPTIONS.delete(name);
+              if (sub.email) await env.SUBSCRIPTIONS.delete(emailKey(sub.email));
+            }
         } catch {}
       })
     );

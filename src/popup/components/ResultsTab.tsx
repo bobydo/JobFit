@@ -12,6 +12,7 @@ interface Props {
   error: string | null;
   isPro: boolean;
   onClear: () => void;
+  onUpgrade: () => void;
 }
 
 const pill = (text: string, color: string, bg: string) =>
@@ -78,7 +79,7 @@ function downloadResults(results: AnalysisResult[], isPro: boolean) {
   chrome.downloads.download({ url, filename: `jobfit-results_${date}.html` }, () => URL.revokeObjectURL(url));
 }
 
-export default function ResultsTab({ results, loginWalls, isAnalyzing, progress, error, isPro, onClear }: Props) {
+export default function ResultsTab({ results, loginWalls, isAnalyzing, progress, error, isPro, onClear, onUpgrade }: Props) {
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   if (isAnalyzing && results.length === 0) {
@@ -192,7 +193,7 @@ export default function ResultsTab({ results, loginWalls, isAnalyzing, progress,
                         🔒 <a
                           href="#"
                           style={{ color: '#1a73e8', textDecoration: 'none' }}
-                          onClick={(e) => { e.preventDefault(); chrome.runtime.sendMessage({ type: 'open_settings' }); }}
+                          onClick={(e) => { e.preventDefault(); onUpgrade(); }}
                         >
                           Get JobFit Pro
                         </a> to see missed skills and full skill gap analysis.

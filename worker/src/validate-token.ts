@@ -13,6 +13,14 @@ export function kvKey(token: string): string {
   return `token:${token}`;
 }
 
+export function emailKey(email: string): string {
+  return `email:${email}`;
+}
+
+export async function getTokenByEmail(email: string, env: Env): Promise<string | null> {
+  return env.SUBSCRIPTIONS.get(emailKey(email));
+}
+
 export async function getSubscription(token: string, env: Env): Promise<Subscription | null> {
   const raw = await env.SUBSCRIPTIONS.get(kvKey(token));
   if (!raw) return null;

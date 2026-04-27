@@ -1,18 +1,17 @@
 import { useEffect, useState } from 'react';
 import { getConfig, saveConfig, AppConfig, LLMMode, ByokProvider } from '@storage/config-store';
 import { WORKER_URL, STRIPE_PRO_URL, OLLAMA_MODEL, OLLAMA_BASE_URL, LANGFUSE_BASE_URL, DEV_MODE, AUTH_REQUIRED_DOMAINS, OPENAI_DEFAULT_MODEL, DAILY_ANALYSIS_LIMIT } from '../../../config';
+import { gmailClient } from '../../../gmail/gmail-client';
 import { recheckSites as _recheckSites } from '@utils/SettingsPanel/siteSignIn';
 import { validateApiKey } from '@utils/SettingsPanel/APICall';
 import { settingsPanelStyles as s } from '../shared.styles';
 import ByokSettings from './ByokSettings';
 
-export default function SettingsPanel({ onClose }: { onClose: () => void }) {
+export default function SettingsPanel({ onClose, focusPro = false }: { onClose: () => void; focusPro?: boolean }) {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [mode, setMode] = useState<LLMMode>('jobfit-cloud');
-  const [tokenInput, setTokenInput] = useState('');
-  const [tokenStatus, setTokenStatus] = useState<'idle' | 'validating' | 'ok' | 'error'>('idle');
+  const [tokenStatus, setTokenStatus] = useState<'idle' | 'validating' | 'ok' | 'error' | 'cancelled'>('idle');
   const [activePlan, setActivePlan] = useState<string | undefined>(undefined);
-  const [subscribeClicked, setSubscribeClicked] = useState(false);
   const [byokProvider, setByokProvider] = useState<ByokProvider>('groq');
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
@@ -32,8 +31,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     getConfig().then((cfg) => {
       setConfig(cfg);
-      setMode(cfg.mode);
-      setTokenInput(cfg.subscriptionToken ?? '');
+      setMode(focusPro ? 'jobfit-cloud' : cfg.mode);
       if (cfg.subscriptionPlan) setActivePlan(cfg.subscriptionPlan);
       setByokProvider(cfg.byokProvider ?? 'groq');
       setApiKey(cfg.apiKey ?? '');
@@ -43,17 +41,44 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
       setLangfuseHost(cfg.langfuseHost ?? '');
       setLangfusePublicKey(cfg.langfusePublicKey ?? '');
       setLangfuseSecretKey(cfg.langfuseSecretKey ?? '');
-      if (cfg.subscriptionToken) {
-        // Re-validate against server — token may have been revoked (e.g. subscription cancelled)
+      const effectiveMode = focusPro ? 'jobfit-cloud' : cfg.mode;
+      const isProMode = effectiveMode === 'jobfit-cloud';
+      if (!cfg.subscriptionToken) {
+        // No saved token — always try auto-detect by Gmail email
+        setTokenStatus('validating');
+        gmailClient.getProfile().then(async (email) => {
+          if (!email) { setTokenStatus(isProMode ? 'cancelled' : 'idle'); return; }
+          const res = await fetch(`${WORKER_URL}/check-subscription`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
+          });
+          if (res.ok) {
+            const { token, plan } = await res.json() as { token: string; plan: 'pro' };
+            await saveConfig({ mode: 'jobfit-cloud', subscriptionToken: token, subscriptionPlan: plan });
+            setActivePlan(plan);
+            setMode('jobfit-cloud');
+            setTokenStatus('ok');
+          } else {
+            setTokenStatus(isProMode ? 'cancelled' : 'idle');
+          }
+        }).catch(() => setTokenStatus(isProMode ? 'cancelled' : 'idle'));
+      } else {
+        // Token in storage — re-validate against server
         setTokenStatus('validating');
         fetch(`${WORKER_URL}/validate-token`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: cfg.subscriptionToken }),
         }).then((res) => {
-          setTokenStatus(res.ok ? 'ok' : 'error');
-          if (!res.ok) saveConfig({ subscriptionToken: undefined, subscriptionPlan: undefined });
-        }).catch(() => setTokenStatus('ok')); // keep ok on network error — don't penalise offline users
+          if (res.ok) {
+            setTokenStatus('ok');
+          } else {
+            setTokenStatus('cancelled');
+            setActivePlan(undefined);
+            saveConfig({ subscriptionToken: undefined, subscriptionPlan: undefined });
+          }
+        }).catch(() => setTokenStatus('ok')); // keep ok on network error
       }
       if (cfg.apiKey) setKeyStatus('ok');
       if (cfg.mode === 'ollama') setOllamaStatus('ok');
@@ -69,27 +94,6 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
 
   function openStripe(url: string) {
     chrome.tabs.create({ url });
-  }
-
-  async function saveToken() {
-    const token = tokenInput.trim();
-    if (!token) return;
-    setTokenStatus('validating');
-    try {
-      const res = await fetch(`${WORKER_URL}/validate-token`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token }),
-      });
-      if (!res.ok) throw new Error('invalid');
-      const { plan } = await res.json() as { plan: 'pro' };
-      await saveConfig({ mode: 'jobfit-cloud', subscriptionToken: token, subscriptionPlan: plan });
-      setMode('jobfit-cloud');
-      setActivePlan(plan);
-      setTokenStatus('ok');
-    } catch {
-      setTokenStatus('error');
-    }
   }
 
   async function saveApiKey() {
@@ -194,41 +198,22 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                 <button
                   style={{ ...s.subscribeBtn, ...s.subscribeBtnPro, ...(tokenStatus === 'ok' ? { opacity: 0.4, cursor: 'not-allowed' } : {}) }}
                   disabled={tokenStatus === 'ok'}
-                  onClick={() => { openStripe(STRIPE_PRO_URL); setSubscribeClicked(true); }}
+                  onClick={() => openStripe(STRIPE_PRO_URL)}
                 >
-                  {tokenStatus === 'ok' ? 'Subscribed ✓' : 'Subscribe →'}
-                </button>
-                {subscribeClicked && tokenStatus !== 'ok' && (
-                  <div style={{ fontSize: 11, color: '#1a73e8', marginTop: 6 }}>
-                    ✉ Check your email for the subscription token, then paste it below.
-                  </div>
-                )}
-              </div>
-
-              {/* Token entry */}
-              <div style={s.fieldLabel}>Subscription token</div>
-              <div style={s.hint}>After subscribing, check your confirmation email for your token.</div>
-              <div style={s.row}>
-                <input
-                  style={s.input}
-                  type="text"
-                  placeholder="Paste token here…"
-                  value={tokenInput}
-                  onChange={(e) => { setTokenInput(e.target.value); setTokenStatus('idle'); }}
-                />
-                <button style={s.saveBtn} onClick={saveToken} disabled={tokenStatus === 'validating'}>
-                  {tokenStatus === 'validating' ? '…' : 'Save'}
+                  {tokenStatus === 'ok' ? 'Subscribed ✓' : tokenStatus === 'validating' ? '…' : 'Subscribe →'}
                 </button>
               </div>
-              {tokenStatus === 'ok'    && <div style={s.ok}>Token saved — {activePlan ?? config.subscriptionPlan ?? 'active'} active</div>}
-              {tokenStatus === 'error' && <div style={s.err}>Invalid token — check your email or re-subscribe</div>}
 
-              {tokenStatus === 'ok' && (
+              {tokenStatus === 'ok'        && <div style={s.ok}>{activePlan ?? config.subscriptionPlan ?? 'Pro'} active</div>}
+              {tokenStatus === 'cancelled'  && <div style={s.err}>Pro inactive — subscription cancelled or expired</div>}
+
+              {mode === 'jobfit-cloud' && STRIPE_PRO_URL && (
                 <div style={{ marginTop: 10 }}>
                   <button
                     style={{ ...s.saveBtn, background: 'none', color: '#1a73e8', border: '1px solid #1a73e8', width: '100%' }}
                     onClick={async () => {
-                      const token = config.subscriptionToken ?? tokenInput.trim();
+                      const token = config.subscriptionToken;
+                      if (!token) { openStripe(STRIPE_PRO_URL); return; }
                       const returnUrl = chrome.runtime.getURL('src/popup/popup.html');
                       try {
                         const res = await fetch(`${WORKER_URL}/create-portal-session`, {

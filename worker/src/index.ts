@@ -4,7 +4,8 @@ import { handleValidateToken }  from './validate-token';
 import { handleStripeWebhook }  from './stripe-webhook';
 import { handleAnalyze }        from './analyze';
 import { handleLead }           from './lead';
-import { handlePortalSession }  from './portal';
+import { handlePortalSession }      from './portal';
+import { handleCheckSubscription }  from './check-subscription';
 
 export interface Env {
   SIGNUPS:               KVNamespace;
@@ -37,6 +38,7 @@ export default {
     if (isPost && pathname === '/analyze')        return handleAnalyze(request, env);
     if (isPost && pathname === '/lead')           return handleLead(request, env);
     if (isPost && pathname === '/create-portal-session') return handlePortalSession(request, env);
+    if (isPost && pathname === '/check-subscription')    return handleCheckSubscription(request, env);
 
     return new Response('Not Found', { status: 404 });
   },
