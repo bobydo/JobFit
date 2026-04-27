@@ -7,8 +7,8 @@ export const WORKER_URL = 'https://jobfit-signup.baoshenyi.workers.dev';
 /** Hosted Google Drive Picker page — served by the Worker. Extension opens this in a new window. */
 export const PICKER_URL = `${WORKER_URL}/picker`;
 
-/** Stripe Payment Link — Pro plan ($11/mo, 2 resumes, 120 analyses/day) */
-export const STRIPE_PRO_URL = 'https://buy.stripe.com/YOUR_PRO_LINK';
+/** Stripe Payment Link — set VITE_STRIPE_PRO_URL in .env (test link for dev, live link for CWS) */
+export const STRIPE_PRO_URL = import.meta.env.VITE_STRIPE_PRO_URL ?? '';
 
 // ── LLM model defaults ────────────────────────────────────────────────────
 export const OLLAMA_MODEL        = 'qwen3:8b';
@@ -58,6 +58,7 @@ export const ANALYSIS_POPUP_MARGIN = 16; // gap from screen edge (px)
 
 // ── Daily analysis limit ──────────────────────────────────────────────────
 // Derived — adjust DEFAULT_MAX_JOB_POSTS to scale this automatically
+// ⚠ Keep in sync with DAILY_LIMIT in worker/wrangler.toml
 export const DAILY_ANALYSIS_LIMIT    = DEFAULT_MAX_RESUMES * DEFAULT_MAX_JOB_POSTS; // 2 × 60 = 120
 export const DAILY_WARN_THRESHOLD    = Math.floor(DAILY_ANALYSIS_LIMIT * 0.9);      // 108 — show yellow warning
 export const LEAD_CAPTURE_MIN_SCORE  = 85; // save to KV when score ≥ this

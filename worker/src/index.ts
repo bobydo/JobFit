@@ -11,6 +11,7 @@ export interface Env {
   STRIPE_WEBHOOK_SECRET: string;
   OPENAI_API_KEY:        string;
   RESEND_API_KEY:        string;
+  DAILY_LIMIT:           string; // set in wrangler.toml [vars] — stringified by Cloudflare
 }
 
 const CORS = {

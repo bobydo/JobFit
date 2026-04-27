@@ -21,7 +21,7 @@ async function sendTokenEmail(email: string, token: string, resendKey: string): 
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${resendKey}` },
     body: JSON.stringify({
-      from:    'JobFit <noreply@jobfit.app>',
+      from:    'JobFit <onboarding@resend.dev>',
       to:      email,
       subject: 'Your JobFit Pro subscription token',
       html: `
@@ -50,8 +50,10 @@ export async function handleStripeWebhook(request: Request, env: Env): Promise<R
 
   if (event.type === 'checkout.session.completed') {
     const session  = event.data.object;
-    const email    = (session.customer_details as Record<string, unknown> | undefined)?.email as string
-                  ?? session.customer_email as string ?? '';
+    const customerDetails = session.customer_details as Record<string, unknown> | undefined;
+    const email = (customerDetails?.email as string)
+               ?? (session.customer_email as string)
+               ?? '';
     const stripeId = session.subscription as string ?? session.id as string;
 
     if (email) {

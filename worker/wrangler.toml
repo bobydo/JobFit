@@ -13,8 +13,12 @@ id = "55b9809c9a724f1a9aa850059f056605"
 
 [[kv_namespaces]]
 binding = "SUBSCRIPTIONS"
-# Run: npx wrangler kv:namespace create SUBSCRIPTIONS  — then paste the ID here
-id = "REPLACE_WITH_SUBSCRIPTIONS_KV_ID"
+id = "0d55b4cbce5e45c094d4208184ba6e73"
+
+# Configurable limits — change here, redeploy, no code edit needed
+# ⚠ Keep in sync with DAILY_ANALYSIS_LIMIT in src/config.ts
+[vars]
+DAILY_LIMIT = 120
 
 # Secrets — set via: npx wrangler secret put <NAME>
 # STRIPE_WEBHOOK_SECRET   — from Stripe dashboard → Webhooks → Signing secret

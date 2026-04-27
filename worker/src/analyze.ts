@@ -1,8 +1,7 @@
 import type { Env } from './index';
 import { getSubscription, putSubscription, json } from './validate-token';
 
-const DAILY_LIMIT = 120;
-const MODEL       = 'gpt-4o-mini';
+const MODEL = 'gpt-4o-mini';
 
 interface LLMMessage { role: 'system' | 'user' | 'assistant'; content: string; }
 
@@ -24,10 +23,11 @@ export async function handleAnalyze(request: Request, env: Env): Promise<Respons
   if (!sub) return json({ error: 'Invalid token' }, 401);
 
   // ── Server-side daily quota ───────────────────────────────────────────────
+  const dailyLimit = parseInt(env.DAILY_LIMIT ?? '120', 10);
   const today = todayUtc();
   const count = sub.lastReset === today ? sub.dailyCount : 0;
-  if (count >= DAILY_LIMIT) {
-    return json({ error: `Daily limit reached (${DAILY_LIMIT}/day). Resets at midnight UTC.` }, 429);
+  if (count >= dailyLimit) {
+    return json({ error: `Daily limit reached (${dailyLimit}/day). Resets at midnight UTC.` }, 429);
   }
 
   // Increment before calling LLM — prevents race-condition double-use

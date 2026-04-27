@@ -11,6 +11,8 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [mode, setMode] = useState<LLMMode>('jobfit-cloud');
   const [tokenInput, setTokenInput] = useState('');
   const [tokenStatus, setTokenStatus] = useState<'idle' | 'validating' | 'ok' | 'error'>('idle');
+  const [activePlan, setActivePlan] = useState<string | undefined>(undefined);
+  const [subscribeClicked, setSubscribeClicked] = useState(false);
   const [byokProvider, setByokProvider] = useState<ByokProvider>('groq');
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
@@ -32,6 +34,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
       setConfig(cfg);
       setMode(cfg.mode);
       setTokenInput(cfg.subscriptionToken ?? '');
+      if (cfg.subscriptionPlan) setActivePlan(cfg.subscriptionPlan);
       setByokProvider(cfg.byokProvider ?? 'groq');
       setApiKey(cfg.apiKey ?? '');
       setOllamaModel(cfg.ollamaModel ?? 'qwen3:8b');
@@ -71,6 +74,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
       const { plan } = await res.json() as { plan: 'pro' };
       await saveConfig({ mode: 'jobfit-cloud', subscriptionToken: token, subscriptionPlan: plan });
       setMode('jobfit-cloud');
+      setActivePlan(plan);
       setTokenStatus('ok');
     } catch {
       setTokenStatus('error');
@@ -176,9 +180,18 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                   <li>High-match tracking — jobs ≥85% saved for tips</li>
                   <li>Fixed cost — no per-token surprises</li>
                 </ul>
-                <button style={{ ...s.subscribeBtn, ...s.subscribeBtnPro }} onClick={() => openStripe(STRIPE_PRO_URL)}>
-                  Subscribe →
+                <button
+                  style={{ ...s.subscribeBtn, ...s.subscribeBtnPro, ...(tokenStatus === 'ok' ? { opacity: 0.4, cursor: 'not-allowed' } : {}) }}
+                  disabled={tokenStatus === 'ok'}
+                  onClick={() => { openStripe(STRIPE_PRO_URL); setSubscribeClicked(true); }}
+                >
+                  {tokenStatus === 'ok' ? 'Subscribed ✓' : 'Subscribe →'}
                 </button>
+                {subscribeClicked && tokenStatus !== 'ok' && (
+                  <div style={{ fontSize: 11, color: '#1a73e8', marginTop: 6 }}>
+                    ✉ Check your email for the subscription token, then paste it below.
+                  </div>
+                )}
               </div>
 
               {/* Token entry */}
@@ -196,7 +209,7 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
                   {tokenStatus === 'validating' ? '…' : 'Save'}
                 </button>
               </div>
-              {tokenStatus === 'ok'    && <div style={s.ok}>Token saved — {config.subscriptionPlan ?? 'active'}</div>}
+              {tokenStatus === 'ok'    && <div style={s.ok}>Token saved — {activePlan ?? config.subscriptionPlan ?? 'active'} active</div>}
               {tokenStatus === 'error' && <div style={s.err}>Invalid token — check your email or re-subscribe</div>}
             </div>
           )}
