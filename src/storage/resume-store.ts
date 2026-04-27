@@ -26,3 +26,5 @@ export class ResumeStore {
     await chrome.storage.local.remove(STORAGE_KEY);
   }
 }
+
+export const resumeStore = new ResumeStore();

@@ -1,11 +1,12 @@
 import { OLLAMA_MODEL, OLLAMA_BASE_URL, DEFAULT_MAX_RESUMES, DEFAULT_MAX_JOB_POSTS, DEFAULT_STALE_JOB_DAYS, LANGFUSE_ENABLED, LANGFUSE_BASE_URL, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, GROQ_DEFAULT_API_KEY } from '../config';
+
 export type LLMMode = 'jobfit-cloud' | 'groq' | 'anthropic' | 'openai' | 'ollama';
 export type ByokProvider = 'groq' | 'anthropic' | 'openai';
 export type SubscriptionPlan = 'pro';
 
 export interface AppConfig {
   mode: LLMMode;
-  // JobFit Cloud
+  // JobFit Pro
   subscriptionToken?: string;
   subscriptionPlan?: SubscriptionPlan;
   // BYOK
@@ -47,14 +48,22 @@ const DEFAULTS: AppConfig = {
   emailSignupShown: false,
 };
 
-export async function getConfig(): Promise<AppConfig> {
-  return new Promise((resolve) => {
-    chrome.storage.sync.get(DEFAULTS, (items) => resolve(items as AppConfig));
-  });
+export class ConfigStore {
+  async get(): Promise<AppConfig> {
+    return new Promise((resolve) => {
+      chrome.storage.sync.get(DEFAULTS, (items) => resolve(items as AppConfig));
+    });
+  }
+
+  async save(patch: Partial<AppConfig>): Promise<void> {
+    return new Promise((resolve) => {
+      chrome.storage.sync.set(patch, resolve);
+    });
+  }
 }
 
-export async function saveConfig(patch: Partial<AppConfig>): Promise<void> {
-  return new Promise((resolve) => {
-    chrome.storage.sync.set(patch, resolve);
-  });
-}
+export const configStore = new ConfigStore();
+
+// Named exports for existing callers
+export const getConfig  = () => configStore.get();
+export const saveConfig = (patch: Partial<AppConfig>) => configStore.save(patch);

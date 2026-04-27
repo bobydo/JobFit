@@ -1,4 +1,4 @@
-import type { OllamaMessage } from '../llm/ollama-provider';
+import type { LLMMessage as OllamaMessage } from '../llm/llm-provider';
 
 export interface LangfuseConfig {
   host: string;
