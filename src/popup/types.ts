@@ -30,9 +30,10 @@ export interface AnalysisResult {
   resumeId: string;
   resumeSubject: string;
   jobUrl: string;
-  matchScore: number;       // 0–100
+  matchScore: number;        // 0–100
   matchSummary: string;
-  skillsGaps: string[];     // always [] in UI — used internally for lead capture
+  matchedSkills?: string[];  // both modes
+  skillsGaps: string[];      // [] for BYOK; populated for Pro
   weights?: AnalysisWeights; // Pro mode only
   analyzedAt: Date;
 }

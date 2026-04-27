@@ -35,7 +35,7 @@ export default function App() {
   const {
     resultsData, loginWalls,
     isAnalyzing, analyzeError, analyzeProgress,
-    handleAnalyze,
+    handleAnalyze, clearResults,
   } = useAnalysis(isStandalone, setActiveTab);
 
   if (setup.status === 'checking') {
@@ -120,6 +120,7 @@ export default function App() {
                 progress={analyzeProgress}
                 error={analyzeError}
                 isPro={mode === 'jobfit-cloud'}
+                onClear={clearResults}
               />
             )}
           </div>

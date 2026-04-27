@@ -123,5 +123,12 @@ export function useAnalysis(isStandalone: boolean, onTabChange: (tab: 'results')
     window.close();
   }
 
-  return { resultsData, loginWalls, isAnalyzing, analyzeError, analyzeProgress, handleAnalyze };
+  async function clearResults() {
+    setResultsData([]);
+    setLoginWalls([]);
+    setAnalyzeError(null);
+    await saveAnalysisResults([]);
+  }
+
+  return { resultsData, loginWalls, isAnalyzing, analyzeError, analyzeProgress, handleAnalyze, clearResults };
 }

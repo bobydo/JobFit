@@ -51,7 +51,7 @@ export class MatchAnalyzer {
 
     const provider = this._factory.create(config);
     const result   = await provider.chat(messages);
-    const { matchScore, matchSummary, skillsGaps, weights } = this._parser.parse(result.content);
+    const { matchScore, matchSummary, matchedSkills, skillsGaps, weights } = this._parser.parse(result.content);
 
     await this._sendTrace(config, messages, result, job, resume);
 
@@ -69,7 +69,8 @@ export class MatchAnalyzer {
       resumeSubject: resume.subject,
       matchScore,
       matchSummary,
-      skillsGaps:    [],            // always stripped from UI — used only for lead capture above
+      matchedSkills,
+      skillsGaps:    isPro ? skillsGaps : [],
       weights:       isPro ? weights : undefined,
       analyzedAt: new Date(),
     };

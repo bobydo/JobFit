@@ -20,12 +20,14 @@ export class PromptBuilder {
       '- Genuine transferable skills (architecture, AI/LLM, CI/CD, system integration) count toward the score.',
       '- Do NOT apply a hard cap — balance gaps against real strengths.',
       '',
+      'matchedSkills: list 3–5 specific skills or experiences THIS candidate has that directly match this role\'s requirements.',
+      '',
       'skillsGaps: list the specific skills or experiences THIS candidate is missing for THIS role, framed as actionable items. Be specific to the candidate\'s background, not generic job requirements.',
       '',
       'weights: 4 integers (0–100) that sum to exactly 100, reflecting how much THIS role weights each dimension.',
       '',
       'Reply ONLY with valid JSON — no markdown, no explanation:',
-      '{"matchScore": <0-100>, "matchSummary": "<5-6 sentences>", "skillsGaps": ["<gap1>", "<gap2>", "<gap3>", "<gap4>", "<gap5>", "<gap6>"], "weights": {"skills": <0-100>, "experience": <0-100>, "tools": <0-100>, "domain": <0-100>}}',
+      '{"matchScore": <0-100>, "matchSummary": "<5-6 sentences>", "matchedSkills": ["<s1>", "<s2>", "<s3>"], "skillsGaps": ["<gap1>", "<gap2>", "<gap3>", "<gap4>", "<gap5>", "<gap6>"], "weights": {"skills": <0-100>, "experience": <0-100>, "tools": <0-100>, "domain": <0-100>}}',
     ].join('\n');
   }
 }

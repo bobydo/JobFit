@@ -3,6 +3,7 @@ import type { AnalysisWeights } from '../popup/types';
 export interface LLMResponse {
   matchScore: number;
   matchSummary: string;
+  matchedSkills: string[];
   skillsGaps: string[];
   weights: AnalysisWeights;
 }
@@ -27,6 +28,10 @@ export class AnalysisResponseParser {
     const matchSummary = typeof obj.matchSummary === 'string'
       ? obj.matchSummary : 'No summary provided.';
 
+    const matchedSkills = Array.isArray(obj.matchedSkills)
+      ? (obj.matchedSkills as unknown[]).filter((x): x is string => typeof x === 'string')
+      : [];
+
     const skillsGaps = Array.isArray(obj.skillsGaps)
       ? (obj.skillsGaps as unknown[]).filter((x): x is string => typeof x === 'string')
       : [];
@@ -39,6 +44,6 @@ export class AnalysisResponseParser {
       domain:     typeof w?.domain     === 'number' ? Math.round(w.domain)     : 25,
     };
 
-    return { matchScore, matchSummary, skillsGaps, weights };
+    return { matchScore, matchSummary, matchedSkills, skillsGaps, weights };
   }
 }

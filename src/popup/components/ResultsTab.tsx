@@ -11,9 +11,13 @@ interface Props {
   progress: { done: number; total: number } | null;
   error: string | null;
   isPro: boolean;
+  onClear: () => void;
 }
 
-function downloadResults(results: AnalysisResult[]) {
+const pill = (text: string, color: string, bg: string) =>
+  `<span style="display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;color:${color};background:${bg};margin:2px;">${text}</span>`;
+
+function downloadResults(results: AnalysisResult[], isPro: boolean) {
   const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
 
   const byJob = new Map<string, AnalysisResult[]>();
@@ -28,7 +32,17 @@ function downloadResults(results: AnalysisResult[]) {
   const jobSections = Array.from(byJob.values()).map((group) => {
     const job     = group[0];
     const jobLink = job.jobUrl ? `<a href="${job.jobUrl}" style="font-size:12px;color:#1a73e8;">View job posting →</a>` : '';
-    const cards   = group.map((r) => `
+    const cards   = group.map((r) => {
+      const matched = r.matchedSkills?.length
+        ? `<div style="margin:8px 0 4px;font-size:11px;font-weight:700;color:#2e7d32;">✓ Matched skills</div><div>${r.matchedSkills.map(s => pill(s, '#2e7d32', '#e8f5e9')).join('')}</div>`
+        : '';
+      const weights = isPro && r.weights
+        ? `<div style="margin:8px 0 4px;font-size:11px;font-weight:700;color:#888;">Role weighting</div><div>${Object.entries(r.weights).map(([k, v]) => pill(`${k} ${v}%`, '#1a73e8', '#f0f6ff')).join('')}</div>`
+        : '';
+      const gaps = isPro && r.skillsGaps.length
+        ? `<div style="margin:8px 0 4px;font-size:11px;font-weight:700;color:#c62828;">✗ Skill gaps</div><ul style="margin:4px 0;padding-left:18px;">${r.skillsGaps.map(g => `<li style="font-size:12px;color:#555;line-height:1.6;">${g}</li>`).join('')}</ul>`
+        : '';
+      return `
       <div style="border:1px solid #e5e5e5;border-radius:8px;margin-bottom:8px;overflow:hidden;">
         <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fafafa;">
           <span style="font-size:13px;font-weight:700;padding:2px 8px;border-radius:10px;color:${scoreColor(r.matchScore)};background:${scoreBg(r.matchScore)};">${r.matchScore}%</span>
@@ -36,9 +50,11 @@ function downloadResults(results: AnalysisResult[]) {
         </div>
         <div style="padding:10px 14px;">
           <p style="font-size:12px;color:#444;line-height:1.7;margin:0 0 8px;">${r.matchSummary}</p>
-          <div style="font-size:10px;color:#bbb;margin-top:4px;">Analyzed ${new Date(r.analyzedAt).toLocaleString()}</div>
+          ${matched}${weights}${gaps}
+          <div style="font-size:10px;color:#bbb;margin-top:6px;">Analyzed ${new Date(r.analyzedAt).toLocaleString()}</div>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
     return `
       <div style="margin-bottom:20px;">
         <div style="font-size:13px;font-weight:700;color:#333;margin-bottom:4px;">${job.jobSubject}</div>
@@ -62,7 +78,7 @@ function downloadResults(results: AnalysisResult[]) {
   chrome.downloads.download({ url, filename: `jobfit-results_${date}.html` }, () => URL.revokeObjectURL(url));
 }
 
-export default function ResultsTab({ results, loginWalls, isAnalyzing, progress, error, isPro }: Props) {
+export default function ResultsTab({ results, loginWalls, isAnalyzing, progress, error, isPro, onClear }: Props) {
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
   if (isAnalyzing && results.length === 0) {
@@ -89,7 +105,8 @@ export default function ResultsTab({ results, loginWalls, isAnalyzing, progress,
   return (
     <div>
       <div style={s.toolbar}>
-        <button style={s.downloadBtn} onClick={() => downloadResults(results)}>↓ Download Report</button>
+        <button style={s.downloadBtn} onClick={() => downloadResults(results, isPro)}>↓ Download Report</button>
+        <button style={{ ...s.downloadBtn, marginLeft: 6, background: 'none', color: '#888', border: '1px solid #ddd' }} onClick={onClear}>🗑 Clear</button>
       </div>
       {isAnalyzing && (
         <div style={s.analyzingBanner}>
@@ -131,7 +148,21 @@ export default function ResultsTab({ results, loginWalls, isAnalyzing, progress,
                     )}
                     <p style={s.summary}>{r.matchSummary}</p>
 
-                    {/* Pro: show role weight breakdown */}
+                    {/* Matched skills — both modes */}
+                    {r.matchedSkills && r.matchedSkills.length > 0 && (
+                      <div style={{ marginTop: 8 }}>
+                        <div style={{ ...s.gapsLabel, color: '#2e7d32' }}>✓ Matched skills</div>
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                          {r.matchedSkills.map((sk, i) => (
+                            <span key={i} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: '#e8f5e9', color: '#2e7d32', fontWeight: 600 }}>
+                              {sk}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Pro: role weighting */}
                     {isPro && r.weights && (
                       <div style={{ marginTop: 8 }}>
                         <div style={s.gapsLabel}>Role weighting</div>
@@ -142,6 +173,29 @@ export default function ResultsTab({ results, loginWalls, isAnalyzing, progress,
                             </span>
                           ))}
                         </div>
+                      </div>
+                    )}
+
+                    {/* Pro: skill gaps */}
+                    {isPro && r.skillsGaps.length > 0 && (
+                      <div style={{ marginTop: 8 }}>
+                        <div style={{ ...s.gapsLabel, color: '#c62828' }}>✗ Skill gaps</div>
+                        <ul style={s.gapsList}>
+                          {r.skillsGaps.map((g, i) => <li key={i} style={s.gapsItem}>{g}</li>)}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* BYOK: upsell hint */}
+                    {!isPro && (
+                      <div style={{ marginTop: 8, fontSize: 11, color: '#888', fontStyle: 'italic' }}>
+                        🔒 <a
+                          href="#"
+                          style={{ color: '#1a73e8', textDecoration: 'none' }}
+                          onClick={(e) => { e.preventDefault(); chrome.runtime.sendMessage({ type: 'open_settings' }); }}
+                        >
+                          Get JobFit Pro
+                        </a> to see missed skills and full skill gap analysis.
                       </div>
                     )}
 
