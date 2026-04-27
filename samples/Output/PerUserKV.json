@@ -1,0 +1,22 @@
+
+// Use Supabase setup to save it 
+// exact PostgreSQL schema + indexes (optimized)
+{
+  "email": "user@email.com",
+  {
+    "job_id": "indeed_0eca42363e2c84b4",
+    "job_title": "Reporting Analyst",
+    "job_url": "...",
+    "best_score": 85,
+    "top_skills_gap": ["Power BI", "Tableau"],
+    "last_analyzed": "..."
+  },
+  {
+    "job_id": "linkedin_0eca42363e2c84b4",
+    "job_title": "AI Data Analyst",
+    "job_url": "...",
+    "best_score": 90,
+    "top_skills_gap": ["LangChain", "Langgraph"],
+    "last_analyzed": "..."
+  }
+}
