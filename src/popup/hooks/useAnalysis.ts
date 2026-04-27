@@ -80,6 +80,9 @@ export function useAnalysis(isStandalone: boolean, onTabChange: (tab: 'results')
     if (errors.length > 0) setAnalyzeError(errors.join('\n'));
     setAnalyzeProgress(null);
     setIsAnalyzing(false);
+    // When analysis finishes, analysisWindowId is cleared 
+    // so the next "Analyze selected" always opens a fresh popup
+    chrome.storage.local.remove('analysisWindowId');
   }
 
   async function handleAnalyze(
