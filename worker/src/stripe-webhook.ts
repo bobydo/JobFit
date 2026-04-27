@@ -16,20 +16,18 @@ async function verifyStripeSignature(payload: string, sigHeader: string, secret:
   return sig === expected;
 }
 
-async function sendTokenEmail(email: string, token: string, resendKey: string): Promise<void> {
+async function sendTokenEmail(email: string, _token: string, resendKey: string): Promise<void> {
   await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${resendKey}` },
     body: JSON.stringify({
       from:    'JobFit <onboarding@resend.dev>',
       to:      email,
-      subject: 'Your JobFit Pro subscription token',
+      subject: 'Welcome to JobFit Pro!',
       html: `
         <p>Thank you for subscribing to JobFit Pro!</p>
-        <p>Your subscription token is:</p>
-        <p style="font-family:monospace;font-size:16px;background:#f5f5f5;padding:12px;border-radius:6px">${token}</p>
-        <p>Paste it into the JobFit extension under Settings → JobFit Pro → Subscription token.</p>
-        <p>This token gives you 120 analyses per day. Keep it private.</p>
+        <p>Your subscription is now active. Open the JobFit extension, go to <strong>Settings → JobFit Pro</strong> — it will activate automatically.</p>
+        <p>You have <strong>120 analyses per day</strong>. Enjoy!</p>
       `,
     }),
   }).catch(() => {}); // fire and forget — don't fail the webhook if email fails
