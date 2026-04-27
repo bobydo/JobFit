@@ -1,4 +1,4 @@
-import type { LLMMessage as OllamaMessage } from '../llm/llm-provider';
+import type { LLMMessage } from '../llm/llm-provider';
 
 export interface LangfuseConfig {
   host: string;
@@ -10,7 +10,7 @@ export interface LlmTrace {
   traceId: string;
   name: string;
   model: string;
-  messages: OllamaMessage[];
+  messages: LLMMessage[];
   output: string;
   startTime: Date;
   endTime: Date;
@@ -19,65 +19,72 @@ export interface LlmTrace {
   metadata?: Record<string, string>;
 }
 
-export async function traceLlmCall(
-  config: LangfuseConfig,
-  trace: LlmTrace,
-): Promise<{ ok: boolean; status: number; body: string }> {
-  try {
-    const auth = btoa(`${config.publicKey}:${config.secretKey}`);
-    const host = config.host.replace(/\/$/, '');
+export class LangfuseTracer {
+  async trace(
+    config: LangfuseConfig,
+    trace: LlmTrace,
+  ): Promise<{ ok: boolean; status: number; body: string }> {
+    try {
+      const auth = btoa(`${config.publicKey}:${config.secretKey}`);
+      const host = config.host.replace(/\/$/, '');
 
-    const res = await fetch(`${host}/api/public/ingestion`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Basic ${auth}`,
-      },
-      body: JSON.stringify({
-        batch: [
-          {
-            id: crypto.randomUUID(),
-            type: 'trace-create',
-            timestamp: trace.startTime.toISOString(),
-            body: {
-              id: trace.traceId,
-              name: trace.name,
-              metadata: trace.metadata ?? {},
-              timestamp: trace.startTime.toISOString(),
-            },
-          },
-          {
-            id: crypto.randomUUID(),
-            type: 'generation-create',
-            timestamp: trace.startTime.toISOString(),
-            body: {
-              id: crypto.randomUUID(),
-              traceId: trace.traceId,
-              name: trace.name,
-              model: trace.model,
-              input: trace.messages,
-              output: trace.output,
-              startTime: trace.startTime.toISOString(),
-              endTime: trace.endTime.toISOString(),
-              usage: {
-                promptTokens: trace.promptTokens,
-                completionTokens: trace.completionTokens,
-                totalTokens: trace.promptTokens + trace.completionTokens,
-              },
-              metadata: trace.metadata ?? {},
-            },
-          },
-        ],
-      }),
-    });
+      const res = await fetch(`${host}/api/public/ingestion`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Basic ${auth}` },
+        body: JSON.stringify(this._buildPayload(trace)),
+      });
 
-    const body = await res.text();
-    if (!res.ok) {
-      console.warn('[JobFit] langfuse-tracer: non-OK response', res.status, body);
+      const body = await res.text();
+      if (!res.ok) console.warn('[JobFit] langfuse-tracer: non-OK response', res.status, body);
+      return { ok: res.ok, status: res.status, body };
+    } catch (e) {
+      console.warn('[JobFit] langfuse-tracer: failed to send trace', e);
+      return { ok: false, status: 0, body: String(e) };
     }
-    return { ok: res.ok, status: res.status, body };
-  } catch (e) {
-    console.warn('[JobFit] langfuse-tracer: failed to send trace', e);
-    return { ok: false, status: 0, body: String(e) };
+  }
+
+  private _buildPayload(trace: LlmTrace): unknown {
+    return {
+      batch: [
+        {
+          id: crypto.randomUUID(),
+          type: 'trace-create',
+          timestamp: trace.startTime.toISOString(),
+          body: {
+            id: trace.traceId,
+            name: trace.name,
+            metadata: trace.metadata ?? {},
+            timestamp: trace.startTime.toISOString(),
+          },
+        },
+        {
+          id: crypto.randomUUID(),
+          type: 'generation-create',
+          timestamp: trace.startTime.toISOString(),
+          body: {
+            id: crypto.randomUUID(),
+            traceId: trace.traceId,
+            name: trace.name,
+            model: trace.model,
+            input: trace.messages,
+            output: trace.output,
+            startTime: trace.startTime.toISOString(),
+            endTime:   trace.endTime.toISOString(),
+            usage: {
+              promptTokens:     trace.promptTokens,
+              completionTokens: trace.completionTokens,
+              totalTokens:      trace.promptTokens + trace.completionTokens,
+            },
+            metadata: trace.metadata ?? {},
+          },
+        },
+      ],
+    };
   }
 }
+
+export const langfuseTracer = new LangfuseTracer();
+
+// Named export for existing callers
+export const traceLlmCall = (config: LangfuseConfig, trace: LlmTrace) =>
+  langfuseTracer.trace(config, trace);
