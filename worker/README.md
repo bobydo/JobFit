@@ -72,7 +72,7 @@ Webhook events (select all 3):
 
 1.  Sign in Stripe (test mode) → Products → create "JobFit Pro" $11 CAD/month recurring
 2.  Payment Links → create link for JobFit Pro → paste URL into d:/JobFit/.env as VITE_STRIPE_PRO_URL
-3.  Settings → Billing → Customer portal → Activate test link → Cancellations: end of billing period
+3.  Settings → Billing → Customer portal → Activate test link → Cancellations: Cancel immediately
 4.  Workbench → Webhooks → Add destination → URL: https://jobfit-signup.baoshenyi.workers.dev/webhook → select 3 events above
 5.  Copy signing secret (whsec_...) → npx wrangler secret put STRIPE_WEBHOOK_SECRET
 6.  Stripe → Developers → API keys → reveal Secret key (sk_test_...) → npx wrangler secret put STRIPE_SECRET_KEY
@@ -92,13 +92,9 @@ User subscribes:
 - Extension auto-detects via /check-subscription using baoshenyi@gmail.com → activates Pro
 
 User cancels in portal:
-- Stripe fires customer.subscription.updated
+- Stripe fires customer.subscription.deleted immediately (Cancel immediately setting)
 - Worker deletes token from KV
-- Extension shows "Pro inactive" on next Settings open
-
-Subscription period ends:
-- Stripe fires customer.subscription.deleted
-- Worker removes any remaining KV entries
+- Extension shows "Pro inactive" on next open
 
 
 ## Health checks (run when something looks wrong)
