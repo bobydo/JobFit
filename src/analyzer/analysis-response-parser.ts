@@ -1,7 +1,10 @@
+import type { AnalysisWeights } from '../popup/types';
+
 export interface LLMResponse {
   matchScore: number;
   matchSummary: string;
   skillsGaps: string[];
+  weights: AnalysisWeights;
 }
 
 export class AnalysisResponseParser {
@@ -17,16 +20,25 @@ export class AnalysisResponseParser {
     }
 
     const obj = parsed as Record<string, unknown>;
+
     const matchScore = typeof obj.matchScore === 'number'
-      ? Math.min(100, Math.max(0, Math.round(obj.matchScore)))
-      : 0;
+      ? Math.min(100, Math.max(0, Math.round(obj.matchScore))) : 0;
+
     const matchSummary = typeof obj.matchSummary === 'string'
-      ? obj.matchSummary
-      : 'No summary provided.';
+      ? obj.matchSummary : 'No summary provided.';
+
     const skillsGaps = Array.isArray(obj.skillsGaps)
       ? (obj.skillsGaps as unknown[]).filter((x): x is string => typeof x === 'string')
       : [];
 
-    return { matchScore, matchSummary, skillsGaps };
+    const w = obj.weights as Record<string, unknown> | undefined;
+    const weights: AnalysisWeights = {
+      skills:     typeof w?.skills     === 'number' ? Math.round(w.skills)     : 25,
+      experience: typeof w?.experience === 'number' ? Math.round(w.experience) : 25,
+      tools:      typeof w?.tools      === 'number' ? Math.round(w.tools)      : 25,
+      domain:     typeof w?.domain     === 'number' ? Math.round(w.domain)     : 25,
+    };
+
+    return { matchScore, matchSummary, skillsGaps, weights };
   }
 }

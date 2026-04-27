@@ -21,7 +21,7 @@ export default function App() {
 
   const {
     setup, checkLabels, handleSignOut,
-    gmailEmail, maxResumes,
+    gmailEmail, maxResumes, mode,
     apiStatus, sitesOk, sitesWarn, siteChecking,
   } = useAppSetup(isStandalone);
 
@@ -118,6 +118,7 @@ export default function App() {
                 isAnalyzing={isAnalyzing}
                 progress={analyzeProgress}
                 error={analyzeError}
+                isPro={mode === 'jobfit-cloud'}
               />
             )}
           </div>

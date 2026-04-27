@@ -17,6 +17,13 @@ export interface LoginWallResult {
   domain: string;   // display name: 'LinkedIn', 'Indeed', 'Glassdoor'
 }
 
+export interface AnalysisWeights {
+  skills: number;
+  experience: number;
+  tools: number;
+  domain: number;
+}
+
 export interface AnalysisResult {
   jobEmailId: string;
   jobSubject: string;
@@ -25,6 +32,7 @@ export interface AnalysisResult {
   jobUrl: string;
   matchScore: number;       // 0–100
   matchSummary: string;
-  skillsGaps: string[];
+  skillsGaps: string[];     // always [] in UI — used internally for lead capture
+  weights?: AnalysisWeights; // Pro mode only
   analyzedAt: Date;
 }

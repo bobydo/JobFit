@@ -9,9 +9,17 @@ compatibility_date = "2025-04-01"
 # Bindings
 [[kv_namespaces]]
 binding = "SIGNUPS"
-# Fill in the existing namespace ID from Cloudflare dashboard → Workers & Pages → KV → SIGNUPS → ID
-# (Or run `npx wrangler kv:namespace list` after `wrangler login` to discover it.)
 id = "55b9809c9a724f1a9aa850059f056605"
+
+[[kv_namespaces]]
+binding = "SUBSCRIPTIONS"
+# Run: npx wrangler kv:namespace create SUBSCRIPTIONS  — then paste the ID here
+id = "REPLACE_WITH_SUBSCRIPTIONS_KV_ID"
+
+# Secrets — set via: npx wrangler secret put <NAME>
+# STRIPE_WEBHOOK_SECRET   — from Stripe dashboard → Webhooks → Signing secret
+# OPENAI_API_KEY          — your GPT-4o mini key
+# RESEND_API_KEY          — from resend.com (free: 3,000 emails/month)
 
 # Note: Wrangler's default rules already treat *.html as Text modules,
 # so `import pickerHtml from './picker.html'` works out of the box.

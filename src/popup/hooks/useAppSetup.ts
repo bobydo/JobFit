@@ -62,6 +62,10 @@ export function useAppSetup(isStandalone: boolean) {
     }
   }
 
+  // Expose mode so App can pass isPro to ResultsTab
+  const [mode, setMode] = useState<string>('groq');
+  useEffect(() => { getConfig().then((cfg) => setMode(cfg.mode)); }, []);
+
   async function handleSignOut() {
     try {
       const token = await getAuthToken(false);
@@ -80,7 +84,7 @@ export function useAppSetup(isStandalone: boolean) {
 
   return {
     setup, checkLabels, handleSignOut,
-    gmailEmail, maxResumes,
+    gmailEmail, maxResumes, mode,
     apiStatus, sitesOk, sitesWarn, siteChecking,
   };
 }

@@ -2,14 +2,15 @@ import { fetchJobPage, fetchJobPageViaTab } from '@utils/job_email/job-page-fetc
 import { traceLlmCall } from '@utils/langfuse-tracer';
 import {
   LANGFUSE_ENABLED, LANGFUSE_BASE_URL, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY,
-  DAILY_ANALYSIS_LIMIT,
+  DAILY_ANALYSIS_LIMIT, DAILY_WARN_THRESHOLD, LEAD_CAPTURE_MIN_SCORE, WORKER_URL,
   GROQ_DEFAULT_MODEL, OPENAI_DEFAULT_MODEL, ANTHROPIC_DEFAULT_MODEL,
   OLLAMA_MODEL,
   AUTH_REQUIRED_DOMAINS,
 } from '../config';
 import { LLMProviderFactory } from '../llm/llm-provider-factory';
 import { cacheStore, CacheStore } from '../storage/cache-store';
-import type { Resume, JobEmail, AnalysisResult } from '../popup/types';
+import { gmailClient } from '../gmail/gmail-client';
+import type { Resume, JobEmail, AnalysisResult, AnalysisWeights } from '../popup/types';
 import type { AppConfig } from '../storage/config-store';
 import { PromptBuilder } from './prompt-builder';
 import { AnalysisResponseParser } from './analysis-response-parser';
@@ -28,26 +29,38 @@ export class MatchAnalyzer {
       { role: 'user'   as const, content: this._promptBuilder.build(resume, job) },
     ];
 
-    const count = await this._cache.getDailyCount();
-    if (count >= DAILY_ANALYSIS_LIMIT) {
-      const reset = new Date();
-      reset.setDate(reset.getDate() + 1);
-      reset.setHours(0, 0, 0, 0);
-      const hh = reset.getHours().toString().padStart(2, '0');
-      const mm = reset.getMinutes().toString().padStart(2, '0');
-      throw new Error(
-        `Daily limit reached — you've used ${count}/${DAILY_ANALYSIS_LIMIT} analyses today. ` +
-        `Resets at midnight (${hh}:${mm} local time).`
-      );
+    // Cloud mode: server enforces quota — skip local tracking entirely
+    if (config.mode !== 'jobfit-cloud') {
+      const count = await this._cache.getDailyCount();
+      if (count >= DAILY_ANALYSIS_LIMIT) {
+        const reset = new Date();
+        reset.setDate(reset.getDate() + 1);
+        reset.setHours(0, 0, 0, 0);
+        const hh = reset.getHours().toString().padStart(2, '0');
+        const mm = reset.getMinutes().toString().padStart(2, '0');
+        throw new Error(
+          `Daily limit reached — you've used ${count}/${DAILY_ANALYSIS_LIMIT} analyses today. ` +
+          `Resets at midnight (${hh}:${mm} local time).`
+        );
+      }
+      if (count >= DAILY_WARN_THRESHOLD) {
+        console.warn(`[JobFit] Approaching daily limit: ${count}/${DAILY_ANALYSIS_LIMIT} used.`);
+      }
+      await this._cache.incrementDailyCount();
     }
-    await this._cache.incrementDailyCount();
 
     const provider = this._factory.create(config);
     const result   = await provider.chat(messages);
-    const { matchScore, matchSummary, skillsGaps } = this._parser.parse(result.content);
+    const { matchScore, matchSummary, skillsGaps, weights } = this._parser.parse(result.content);
 
     await this._sendTrace(config, messages, result, job, resume);
 
+    // Lead capture — fire and forget, never blocks the result
+    if (matchScore >= LEAD_CAPTURE_MIN_SCORE) {
+      this._captureLead(config, job.subject, skillsGaps, weights, matchScore).catch(() => {});
+    }
+
+    const isPro = config.mode === 'jobfit-cloud';
     return {
       jobEmailId:    job.id,
       jobSubject:    job.subject,
@@ -56,9 +69,29 @@ export class MatchAnalyzer {
       resumeSubject: resume.subject,
       matchScore,
       matchSummary,
-      skillsGaps,
+      skillsGaps:    [],            // always stripped from UI — used only for lead capture above
+      weights:       isPro ? weights : undefined,
       analyzedAt: new Date(),
     };
+  }
+
+  private async _captureLead(
+    config: AppConfig,
+    jobTitle: string,
+    skillsGaps: string[],
+    weights: AnalysisWeights,
+    score: number,
+  ): Promise<void> {
+    const isPro  = config.mode === 'jobfit-cloud';
+    const email  = isPro ? undefined : await gmailClient.getProfile().catch(() => '');
+    const token  = isPro ? config.subscriptionToken : undefined;
+    if (!email && !token) return;
+
+    await fetch(`${WORKER_URL}/lead`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, token, jobTitle, skillsGaps, weights, score }),
+    });
   }
 
   async fetchJobContent(

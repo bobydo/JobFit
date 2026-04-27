@@ -3,6 +3,7 @@ import type { LLMProvider } from './llm-provider';
 import { AnthropicProvider } from './anthropic-provider';
 import { OpenAICompatibleProvider } from './openai-compatible-provider';
 import { OllamaProvider } from './ollama-provider';
+import { JobfitCloudProvider } from './jobfit-cloud-provider';
 import { OLLAMA_MODEL, OLLAMA_BASE_URL } from '../config';
 
 export class LLMProviderFactory {
@@ -22,7 +23,7 @@ export class LLMProviderFactory {
         );
 
       case 'jobfit-cloud':
-        throw new Error('JobFit Pro not yet implemented — use Groq or your own API key.');
+        return new JobfitCloudProvider(config.subscriptionToken!);
 
       default:
         throw new Error(`Unknown LLM mode: ${config.mode}`);
