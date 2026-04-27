@@ -3,6 +3,7 @@ import type { Env } from './index';
 export interface Subscription {
   plan: 'pro';
   email: string;
+  customerId: string;
   stripeId: string;
   dailyCount: number;
   lastReset: string; // YYYY-MM-DD

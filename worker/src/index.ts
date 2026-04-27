@@ -4,6 +4,7 @@ import { handleValidateToken }  from './validate-token';
 import { handleStripeWebhook }  from './stripe-webhook';
 import { handleAnalyze }        from './analyze';
 import { handleLead }           from './lead';
+import { handlePortalSession }  from './portal';
 
 export interface Env {
   SIGNUPS:               KVNamespace;
@@ -11,6 +12,7 @@ export interface Env {
   STRIPE_WEBHOOK_SECRET: string;
   OPENAI_API_KEY:        string;
   RESEND_API_KEY:        string;
+  STRIPE_SECRET_KEY:     string;
   DAILY_LIMIT:           string; // set in wrangler.toml [vars] — stringified by Cloudflare
 }
 
@@ -34,6 +36,7 @@ export default {
     if (isPost && pathname === '/webhook')        return handleStripeWebhook(request, env);
     if (isPost && pathname === '/analyze')        return handleAnalyze(request, env);
     if (isPost && pathname === '/lead')           return handleLead(request, env);
+    if (isPost && pathname === '/create-portal-session') return handlePortalSession(request, env);
 
     return new Response('Not Found', { status: 404 });
   },

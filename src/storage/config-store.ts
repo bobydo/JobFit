@@ -51,7 +51,10 @@ const DEFAULTS: AppConfig = {
 export class ConfigStore {
   async get(): Promise<AppConfig> {
     return new Promise((resolve) => {
-      chrome.storage.sync.get(DEFAULTS, (items) => resolve(items as AppConfig));
+      // Use null to get ALL stored keys, then fill missing ones with DEFAULTS.
+      // Using DEFAULTS directly as the key list omits optional fields like
+      // subscriptionToken that aren't in DEFAULTS, causing them to be lost on reload.
+      chrome.storage.sync.get(null, (items) => resolve({ ...DEFAULTS, ...items } as AppConfig));
     });
   }
 

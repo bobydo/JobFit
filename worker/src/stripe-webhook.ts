@@ -54,12 +54,13 @@ export async function handleStripeWebhook(request: Request, env: Env): Promise<R
     const email = (customerDetails?.email as string)
                ?? (session.customer_email as string)
                ?? '';
-    const stripeId = session.subscription as string ?? session.id as string;
+    const customerId = session.customer as string ?? '';
+    const stripeId   = session.subscription as string ?? session.id as string;
 
     if (email) {
       const token = crypto.randomUUID();
       const today = new Date().toISOString().slice(0, 10);
-      await putSubscription(token, { plan: 'pro', email, stripeId, dailyCount: 0, lastReset: today }, env);
+      await putSubscription(token, { plan: 'pro', email, customerId, stripeId, dailyCount: 0, lastReset: today }, env);
       await sendTokenEmail(email, token, env.RESEND_API_KEY);
     }
   }

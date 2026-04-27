@@ -43,7 +43,18 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
       setLangfuseHost(cfg.langfuseHost ?? '');
       setLangfusePublicKey(cfg.langfusePublicKey ?? '');
       setLangfuseSecretKey(cfg.langfuseSecretKey ?? '');
-      if (cfg.subscriptionToken) setTokenStatus('ok');
+      if (cfg.subscriptionToken) {
+        // Re-validate against server — token may have been revoked (e.g. subscription cancelled)
+        setTokenStatus('validating');
+        fetch(`${WORKER_URL}/validate-token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: cfg.subscriptionToken }),
+        }).then((res) => {
+          setTokenStatus(res.ok ? 'ok' : 'error');
+          if (!res.ok) saveConfig({ subscriptionToken: undefined, subscriptionPlan: undefined });
+        }).catch(() => setTokenStatus('ok')); // keep ok on network error — don't penalise offline users
+      }
       if (cfg.apiKey) setKeyStatus('ok');
       if (cfg.mode === 'ollama') setOllamaStatus('ok');
     });
@@ -211,6 +222,39 @@ export default function SettingsPanel({ onClose }: { onClose: () => void }) {
               </div>
               {tokenStatus === 'ok'    && <div style={s.ok}>Token saved — {activePlan ?? config.subscriptionPlan ?? 'active'} active</div>}
               {tokenStatus === 'error' && <div style={s.err}>Invalid token — check your email or re-subscribe</div>}
+
+              {tokenStatus === 'ok' && (
+                <div style={{ marginTop: 10 }}>
+                  <button
+                    style={{ ...s.saveBtn, background: 'none', color: '#1a73e8', border: '1px solid #1a73e8', width: '100%' }}
+                    onClick={async () => {
+                      const token = config.subscriptionToken ?? tokenInput.trim();
+                      const returnUrl = chrome.runtime.getURL('src/popup/popup.html');
+                      try {
+                        const res = await fetch(`${WORKER_URL}/create-portal-session`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ token, returnUrl }),
+                        });
+                        if (res.ok) {
+                          const { url } = await res.json() as { url: string };
+                          chrome.tabs.create({ url });
+                        } else {
+                          const { error } = await res.json() as { error: string };
+                          alert(`Could not open portal: ${error}`);
+                        }
+                      } catch (e) {
+                        alert(`Network error: ${e instanceof Error ? e.message : String(e)}`);
+                      }
+                    }}
+                  >
+                    Manage subscription →
+                  </button>
+                  <div style={{ fontSize: 10, color: '#999', marginTop: 6, lineHeight: 1.5 }}>
+                    Cancel anytime — no charge next month, no refund for current period.
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

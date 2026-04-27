@@ -82,9 +82,17 @@ export function useAppSetup(isStandalone: boolean) {
   const sitesOk   = siteVals.length > 0 && siteVals.every(v => v === true);
   const sitesWarn = siteVals.some(v => v === false);
 
+  async function recheckApi() {
+    setApiStatus('checking');
+    const cfg = await getConfig();
+    const ok  = await checkApiReady(cfg);
+    setApiStatus(ok ? 'ok' : 'error');
+  }
+
   return {
     setup, checkLabels, handleSignOut,
     gmailEmail, maxResumes, mode,
     apiStatus, sitesOk, sitesWarn, siteChecking,
+    recheckApi,
   };
 }

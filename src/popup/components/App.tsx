@@ -23,6 +23,7 @@ export default function App() {
     setup, checkLabels, handleSignOut,
     gmailEmail, maxResumes, mode,
     apiStatus, sitesOk, sitesWarn, siteChecking,
+    recheckApi,
   } = useAppSetup(isStandalone);
 
   const {
@@ -72,7 +73,7 @@ export default function App() {
       )}
 
       {showSettings ? (
-        <SettingsPanel onClose={() => setShowSettings(false)} />
+        <SettingsPanel onClose={() => { setShowSettings(false); recheckApi(); }} />
       ) : (
         <>
           <div style={styles.tabs}>
