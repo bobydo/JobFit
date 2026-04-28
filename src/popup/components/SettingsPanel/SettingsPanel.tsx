@@ -12,6 +12,7 @@ export default function SettingsPanel({ onClose, focusPro = false }: { onClose: 
   const [mode, setMode] = useState<LLMMode>('jobfit-cloud');
   const [tokenStatus, setTokenStatus] = useState<'idle' | 'validating' | 'ok' | 'error' | 'cancelled'>('idle');
   const [activePlan, setActivePlan] = useState<string | undefined>(undefined);
+  const [cancelAt, setCancelAt] = useState<string | null>(null);
   const [byokProvider, setByokProvider] = useState<ByokProvider>('groq');
   const [apiKey, setApiKey] = useState('');
   const [showKey, setShowKey] = useState(false);
@@ -72,6 +73,8 @@ export default function SettingsPanel({ onClose, focusPro = false }: { onClose: 
           body: JSON.stringify({ token: cfg.subscriptionToken }),
         }).then(async (res) => {
           if (res.ok) {
+            const data = await res.json() as { plan: 'pro'; cancelAt?: string };
+            if (data.cancelAt) setCancelAt(data.cancelAt);
             setTokenStatus('ok');
           } else if (res.status === 401 || res.status === 404) {
             // Token invalid — wipe it then try email-based re-detection before giving up
@@ -223,7 +226,8 @@ export default function SettingsPanel({ onClose, focusPro = false }: { onClose: 
                 </button>
               </div>
 
-              {tokenStatus === 'ok'        && <div style={s.ok}>{activePlan ?? config.subscriptionPlan ?? 'Pro'} active</div>}
+              {tokenStatus === 'ok' && !cancelAt && <div style={s.ok}>{activePlan ?? config.subscriptionPlan ?? 'Pro'} active</div>}
+              {tokenStatus === 'ok' && cancelAt && <div style={s.err}>Cancels on {cancelAt}</div>}
               {tokenStatus === 'cancelled'  && <div style={s.err}>Pro inactive — subscription cancelled or expired</div>}
 
               {mode === 'jobfit-cloud' && STRIPE_PRO_URL && (
@@ -416,23 +420,7 @@ export default function SettingsPanel({ onClose, focusPro = false }: { onClose: 
 
       </div>
 
-      {/* ── Job history opt-in ── */}
-      <div style={{ ...s.section, borderTop: '1px solid #f0f0f0', paddingTop: 14, marginTop: 4 }}>
-        <div style={s.sectionLabel}>Job History</div>
-        <label style={{ ...s.radioRow, marginBottom: 4 }}>
-          <input
-            type="checkbox"
-            checked={config.historyOptIn ?? false}
-            onChange={(e) => saveConfig({ historyOptIn: e.target.checked })}
-          />
-          <span style={s.radioLabel}>Save best matches (≥ 85%) for learning recommendations</span>
-        </label>
-        <div style={s.hint}>
-          Stores job title, score, and skill gaps on Cloudflare — linked to your Gmail address. Used to recommend learning resources for skill gaps. No resume content is stored.
-        </div>
-      </div>
-
-      {/* BYOK waiver modal */}
+{/* BYOK waiver modal */}
       {showByokWarning && (
         <div style={s.modal}>
           <div style={s.modalBox}>

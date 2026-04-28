@@ -7,6 +7,7 @@ export interface Subscription {
   stripeId: string;
   dailyCount: number;
   lastReset: string; // YYYY-MM-DD
+  cancelAt?: string; // YYYY-MM-DD, set when cancel_at_period_end=true
 }
 
 export function kvKey(token: string): string {
@@ -41,7 +42,20 @@ export async function handleValidateToken(request: Request, env: Env): Promise<R
   const sub = await getSubscription(token, env);
   if (!sub) return json({ error: 'Invalid token' }, 401);
 
-  return json({ plan: sub.plan });
+  let cancelAt: string | undefined;
+  if (sub.stripeId) {
+    try {
+      const res = await fetch(`https://api.stripe.com/v1/subscriptions/${sub.stripeId}`, {
+        headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}` },
+      });
+      if (res.ok) {
+        const s = await res.json() as { cancel_at: number | null };
+        if (s.cancel_at) cancelAt = new Date(s.cancel_at * 1000).toISOString().slice(0, 10);
+      }
+    } catch {} // never fail validation if Stripe is unreachable
+  }
+
+  return json({ plan: sub.plan, ...(cancelAt ? { cancelAt } : {}) });
 }
 
 export function json(body: unknown, status = 200): Response {

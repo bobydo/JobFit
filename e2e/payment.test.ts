@@ -124,40 +124,28 @@ test('Manage subscription → portal shows name, email, plan, cancel button', as
   await popup.close();
 });
 
-// ── Test 4: Full cancellation flow → Pro inactive (expected failure = bug) ─
+// ── Test 4: After cancel_at_period_end — extension shows cancellation date ─
+// Simulates the state after user cancels via Stripe portal with cancel_at_period_end=true:
+// token still valid in KV (period not over), but validate-token now returns cancelAt.
 
-test('Cancel subscription → confirm → reopen extension shows Pro inactive [BUG: currently shows active]', async () => {
+test('Cancel subscription → after cancel_at_period_end=true → extension shows cancellation date [BUG: currently shows active without warning]', async () => {
   await setStorage(context, { subscriptionToken: TEST_TOKEN, subscriptionPlan: TEST_PLAN, mode: TEST_MODE });
-  const popup = await openPopup(context);
-  await popup.route(`${WORKER_URL}/validate-token`, route =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ plan: TEST_PLAN }) })
+
+  await context.route('**/validate-token', route =>
+    route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ plan: TEST_PLAN, cancelAt: '2026-05-28' }),
+    })
   );
+
+  const popup = await openPopup(context);
   await popup.getByText(UI_SETTINGS).click();
 
-  const [portalPage] = await Promise.all([
-    context.waitForEvent('page'),
-    popup.getByRole('button', { name: /Manage subscription/ }).click(),
-  ]);
-  await portalPage.waitForLoadState('networkidle');
+  await expect(popup.getByText(new RegExp(UI_CANCELS_LABEL, 'i'))).toBeVisible({ timeout: 5_000 });
+  await expect(popup.getByRole('button', { name: /Subscribed/ })).toBeDisabled();
 
-  await portalPage.getByRole('button', { name: /Cancel subscription/i }).first().click();
-  await expect(portalPage.getByText('Confirm cancellation')).toBeVisible({ timeout: 10_000 });
-  await expect(portalPage.getByText(/still be available until/i)).toBeVisible();
-
-  await portalPage.getByLabel('I no longer need it').check();
-  await portalPage.getByRole('button', { name: /Submit/i }).click();
-  await expect(portalPage.getByText('Subscription has been canceled')).toBeVisible({ timeout: 10_000 });
-
-  await portalPage.close();
   await popup.close();
-
-  // BUG: extension still shows "pro active" right after cancel because
-  // customer.subscription.deleted webhook only fires at end of billing period.
-  const popup2 = await openPopup(context);
-  await popup2.getByText(UI_SETTINGS).click();
-  await expect(popup2.getByText(UI_PRO_ACTIVE)).toBeVisible({ timeout: 5_000 });
-
-  await popup2.close();
+  await context.unroute('**/validate-token');
 });
 
 // ── Test 5: Don't cancel → Renew → Pro active ────────────────────────────

@@ -82,5 +82,32 @@ export async function handleStripeWebhook(request: Request, env: Env): Promise<R
     );
   }
 
+  if (event.type === 'customer.subscription.updated') {
+    const obj        = event.data.object;
+    const stripeId   = obj.id as string;
+    const cancelAtTs = obj.cancel_at as number | null;
+    const cancelAt   = cancelAtTs
+      ? new Date(cancelAtTs * 1000).toISOString().slice(0, 10)
+      : undefined;
+
+    const list = await env.SUBSCRIPTIONS.list();
+    await Promise.all(
+      list.keys.map(async ({ name }) => {
+        const raw = await env.SUBSCRIPTIONS.get(name);
+        if (!raw) return;
+        try {
+          const stored = JSON.parse(raw) as import('./validate-token').Subscription;
+          if (stored.stripeId !== stripeId) return;
+          if (cancelAt) {
+            stored.cancelAt = cancelAt;
+          } else {
+            delete stored.cancelAt;
+          }
+          await env.SUBSCRIPTIONS.put(name, JSON.stringify(stored));
+        } catch {}
+      })
+    );
+  }
+
   return new Response('OK');
 }
