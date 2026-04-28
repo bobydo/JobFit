@@ -40,8 +40,19 @@ function downloadResults(results: AnalysisResult[], isPro: boolean) {
       const weights = isPro && r.weights
         ? `<div style="margin:8px 0 4px;font-size:11px;font-weight:700;color:#888;">Role weighting</div><div>${Object.entries(r.weights).map(([k, v]) => pill(`${k} ${v}%`, '#1a73e8', '#f0f6ff')).join('')}</div>`
         : '';
-      const gaps = isPro && r.skillsGaps.length
-        ? `<div style="margin:8px 0 4px;font-size:11px;font-weight:700;color:#c62828;">✗ Skill gaps</div><ul style="margin:4px 0;padding-left:18px;">${r.skillsGaps.map(g => `<li style="font-size:12px;color:#555;line-height:1.6;">${g}</li>`).join('')}</ul>`
+      const gapItems = isPro && r.skillGapDetails && r.skillGapDetails.length > 0
+        ? [...r.skillGapDetails]
+            .sort((a, b) => (a.priority === 'required' ? -1 : 1) - (b.priority === 'required' ? -1 : 1))
+            .map(g => {
+              const color = g.priority === 'required' ? '#c62828' : '#888';
+              const bg    = g.priority === 'required' ? '#ffebee' : '#f5f5f5';
+              return `<li style="font-size:12px;color:#555;line-height:1.8;">${g.skill} <span style="font-size:10px;padding:1px 5px;border-radius:8px;font-weight:600;color:${color};background:${bg};">${g.priority}</span></li>`;
+            })
+        : isPro && r.skillsGaps.length
+          ? r.skillsGaps.map(g => `<li style="font-size:12px;color:#555;line-height:1.6;">${g}</li>`)
+          : [];
+      const gaps = isPro && gapItems.length
+        ? `<div style="margin:8px 0 4px;font-size:11px;font-weight:700;color:#c62828;">✗ Skill gaps</div><ul style="margin:4px 0;padding-left:18px;">${gapItems.join('')}</ul>`
         : '';
       return `
       <div style="border:1px solid #e5e5e5;border-radius:8px;margin-bottom:8px;overflow:hidden;">
@@ -207,16 +218,38 @@ export default function ResultsTab({ results, loginWalls, isAnalyzing, progress,
                       </div>
                     )}
 
-                    {/* BYOK: upsell hint */}
+                    {/* BYOK: blurred preview + lock overlay */}
                     {!isPro && (
-                      <div style={{ marginTop: 8, fontSize: 11, color: '#888', fontStyle: 'italic' }}>
-                        🔒 <a
-                          href="#"
-                          style={{ color: '#1a73e8', textDecoration: 'none' }}
-                          onClick={(e) => { e.preventDefault(); onUpgrade(); }}
-                        >
-                          Get JobFit Pro
-                        </a> to see missed skills and full skill gap analysis.
+                      <div style={{ marginTop: 8, position: 'relative' }}>
+                        <div style={{ filter: 'blur(4px)', pointerEvents: 'none', userSelect: 'none' }}>
+                          <div style={{ marginTop: 8 }}>
+                            <div style={s.gapsLabel}>Role weighting</div>
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
+                              {(['Technical 45%', 'Experience 30%', 'Soft Skills 25%']).map((t) => (
+                                <span key={t} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10, background: '#f0f6ff', color: '#1a73e8', fontWeight: 600 }}>{t}</span>
+                              ))}
+                            </div>
+                          </div>
+                          <div style={{ marginTop: 8 }}>
+                            <div style={{ ...s.gapsLabel, color: '#c62828' }}>✗ Skill gaps</div>
+                            <ul style={s.gapsList}>
+                              {([['GraphQL', 'required'], ['Docker', 'preferred'], ['System Design', 'required']] as const).map(([skill, priority]) => (
+                                <li key={skill} style={s.gapsItem}>
+                                  {skill}
+                                  <span style={{ marginLeft: 6, fontSize: 10, padding: '1px 5px', borderRadius: 8, fontWeight: 600, color: priority === 'required' ? '#c62828' : '#888', background: priority === 'required' ? '#ffebee' : '#f5f5f5' }}>{priority}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.55)' }}>
+                          <span style={{ fontSize: 11, color: '#555', fontStyle: 'italic' }}>
+                            🔒{' '}
+                            <a href="#" style={{ color: '#1a73e8', textDecoration: 'none' }} onClick={(e) => { e.preventDefault(); onUpgrade(); }}>
+                              Get JobFit Pro
+                            </a>{' '}to unlock
+                          </span>
+                        </div>
                       </div>
                     )}
 

@@ -144,7 +144,7 @@ export default function JobPostsTab({ cachedData, onDataLoaded, onAnalyze, isAna
       {/* Stale email cleanup nudge */}
       {staleCount > 0 && (
         <div style={s.staleBanner}>
-          <span>ℹ {staleCount} processed post{staleCount !== 1 ? 's' : ''} older than {staleJobDays} days still in Gmail — delete them to keep fetches fast.</span>
+          <span>ℹ Delete old job posts emails in jobposts label to keep fetches fast.</span>
           <a
             href="https://mail.google.com/mail/#search/label:jobposts"
             target="_blank"
@@ -159,7 +159,7 @@ export default function JobPostsTab({ cachedData, onDataLoaded, onAnalyze, isAna
 
       {/* Job history — persistent radio control */}
       <div style={{ margin: '6px 0 4px', padding: '6px 10px', background: '#f8f9fa', border: '1px solid #e8e8e8', borderRadius: 6, fontSize: 11, color: '#555', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontWeight: 600, color: '#444' }}>Job history (≥ 85%):</span>
+        <span style={{ fontWeight: 600, color: '#444' }}>Save skill gaps to get learning material:</span>
         <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
           <input type="radio" name="historyOptIn" checked={historyOptIn} onChange={() => handleHistoryChange(true)} />
           Save history

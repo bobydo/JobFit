@@ -33,16 +33,16 @@ export class PromptBuilder {
 
   buildPro(resume: Resume, job: JobEmail): string {
     const base = this.build(resume, job);
-    const proAddition = [
+    const baseTemplate = '{"matchScore": <0-100>, "matchSummary": "<5-6 sentences>", "matchedSkills": ["<s1>", "<s2>", "<s3>"], "skillsGaps": ["<gap1>", "<gap2>", "<gap3>", "<gap4>", "<gap5>", "<gap6>"], "weights": {"skills": <0-100>, "experience": <0-100>, "tools": <0-100>, "domain": <0-100>}}';
+    const proTemplate  = '{"matchScore": <0-100>, "matchSummary": "<5-6 sentences>", "matchedSkills": ["<s1>", "<s2>", "<s3>"], "skillsGaps": ["<gap1>", "<gap2>", "<gap3>", "<gap4>", "<gap5>", "<gap6>"], "skillsGapsDetailed": [{"skill": "<gap1>", "priority": "required"}, {"skill": "<gap2>", "priority": "preferred"}], "weights": {"skills": <0-100>, "experience": <0-100>, "tools": <0-100>, "domain": <0-100>}}';
+    return base.replace(baseTemplate, [
+      'skillsGapsDetailed: same gaps as skillsGaps, each labelled by priority.',
+      '- "required": job uses "required", "must have", "minimum", "essential", or lists it under Requirements.',
+      '- "preferred": job uses "preferred", "nice to have", "a plus", "bonus", or lists it under Preferred Qualifications.',
+      '- If unclear, default to "required".',
       '',
-      'skillsGapsDetailed: same gaps as skillsGaps, but each as an object with priority label.',
-      '- "required": job uses words like "required", "must have", "minimum", "essential", or lists it under Requirements',
-      '- "preferred": job uses "preferred", "nice to have", "a plus", "bonus", or lists it under Preferred Qualifications',
-      'If unclear, default to "required".',
-      '',
-      'Add this field to your JSON response:',
-      '"skillsGapsDetailed": [{"skill": "<gap1>", "priority": "required|preferred"}, ...]',
-    ].join('\n');
-    return base + proAddition;
+      'Reply ONLY with valid JSON — no markdown, no explanation:',
+      proTemplate,
+    ].join('\n'));
   }
 }
