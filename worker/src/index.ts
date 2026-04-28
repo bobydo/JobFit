@@ -6,10 +6,12 @@ import { handleAnalyze }        from './analyze';
 import { handleLead }           from './lead';
 import { handlePortalSession }      from './portal';
 import { handleCheckSubscription }  from './check-subscription';
+import { handleHistory }        from './history';
 
 export interface Env {
   SIGNUPS:               KVNamespace;
   SUBSCRIPTIONS:         KVNamespace;
+  DB:                    D1Database;
   STRIPE_WEBHOOK_SECRET: string;
   OPENAI_API_KEY:        string;
   RESEND_API_KEY:        string;
@@ -39,6 +41,7 @@ export default {
     if (isPost && pathname === '/lead')           return handleLead(request, env);
     if (isPost && pathname === '/create-portal-session') return handlePortalSession(request, env);
     if (isPost && pathname === '/check-subscription')    return handleCheckSubscription(request, env);
+    if (isPost && pathname === '/history')               return handleHistory(request, env);
 
     return new Response('Not Found', { status: 404 });
   },

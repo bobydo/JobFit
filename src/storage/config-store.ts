@@ -29,6 +29,8 @@ export interface AppConfig {
   settingsAcknowledged?: boolean;
   emailSignupShown?: boolean;
   emailSignupAddress?: string;
+  // Job history opt-in
+  historyOptIn?: boolean;
 }
 
 const DEFAULTS: AppConfig = {

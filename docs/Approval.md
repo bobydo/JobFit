@@ -67,16 +67,27 @@ Go to [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/
 
 **Full description:**
 ```
-JobFit automatically reads job emails from your Gmail inbox and matches them against your resume using AI — giving you a match score, summary, and skills gap list for each posting.
+JobFit reads job emails from your Gmail inbox and matches them against your resume 
+using AI — giving you a match score, summary, and skill gap list for each posting.
 
 How it works:
 1. Label your resumes as "resumes" and job alert emails as "jobposts" in Gmail
 2. Open JobFit and select the jobs you want to analyze
 3. Get instant AI-powered match scores with actionable feedback
 
-Supports multiple AI providers: Groq (free), OpenAI, Anthropic, or a local Ollama model.
+JobFit Pro (optional subscription):
+- No API key required — powered by GPT-4o mini
+- Role-weighted scoring (skills · experience · tools · domain)
+- Full skill gap analysis with required vs. preferred classification
+- 120 analyses/day, fixed cost
 
-Your data stays private — resume and job text is sent only to the AI provider you choose, never to our servers.
+Optional: Save your best job matches (score ≥ 85%) to receive personalized learning 
+resource recommendations for the skills you're missing most. Requires opt-in.
+
+Supports: Groq (free), OpenAI, Anthropic, or a local Ollama model.
+
+Your resume and job text is sent only to the AI provider you choose. No resume 
+content is ever stored on our servers.
 ```
 
 **Category:** Productivity

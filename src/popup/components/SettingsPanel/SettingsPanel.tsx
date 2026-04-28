@@ -397,6 +397,22 @@ export default function SettingsPanel({ onClose, focusPro = false }: { onClose: 
 
       </div>
 
+      {/* ── Job history opt-in ── */}
+      <div style={{ ...s.section, borderTop: '1px solid #f0f0f0', paddingTop: 14, marginTop: 4 }}>
+        <div style={s.sectionLabel}>Job History</div>
+        <label style={{ ...s.radioRow, marginBottom: 4 }}>
+          <input
+            type="checkbox"
+            checked={config.historyOptIn ?? false}
+            onChange={(e) => saveConfig({ historyOptIn: e.target.checked })}
+          />
+          <span style={s.radioLabel}>Save best matches (≥ 85%) for learning recommendations</span>
+        </label>
+        <div style={s.hint}>
+          Stores job title, score, and skill gaps on Cloudflare — linked to your Gmail address. Used to recommend learning resources for skill gaps. No resume content is stored.
+        </div>
+      </div>
+
       {/* BYOK waiver modal */}
       {showByokWarning && (
         <div style={s.modal}>

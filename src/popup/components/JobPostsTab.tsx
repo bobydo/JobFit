@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { listMessages, getMessage, getSubject, getPlainTextBody, getBodyForUrlExtraction, getInternalDate, MessageStub } from '@gmail/gmail-client';
 import { getCached, setCached, getProcessedIds, markProcessed } from '@storage/cache-store';
-import { getConfig } from '@storage/config-store';
+import { getConfig, saveConfig } from '@storage/config-store';
 import { extractCandidateUrls } from '@utils/job_email/job-page-fetcher';
 import type { JobEmail } from '../types';
 import { jobPostsStyles as s } from './shared.styles';
@@ -30,10 +30,20 @@ export default function JobPostsTab({ cachedData, onDataLoaded, onAnalyze, isAna
   const [processedIds, setProcessedIds] = useState<string[]>([]);
   const [staleCount, setStaleCount] = useState(0);
   const [staleJobDays, setStaleJobDaysState] = useState(10);
+  const [historyOptIn, setHistoryOptIn] = useState(true);
 
   useEffect(() => {
     getProcessedIds().then(setProcessedIds);
   }, []);
+
+  useEffect(() => {
+    getConfig().then((cfg) => setHistoryOptIn(cfg.historyOptIn ?? true));
+  }, []);
+
+  async function handleHistoryChange(value: boolean) {
+    setHistoryOptIn(value);
+    await saveConfig({ historyOptIn: value });
+  }
 
   useEffect(() => {
     if (cachedData) return;
@@ -146,6 +156,19 @@ export default function JobPostsTab({ cachedData, onDataLoaded, onAnalyze, isAna
           </a>
         </div>
       )}
+
+      {/* Job history — persistent radio control */}
+      <div style={{ margin: '6px 0 4px', padding: '6px 10px', background: '#f8f9fa', border: '1px solid #e8e8e8', borderRadius: 6, fontSize: 11, color: '#555', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <span style={{ fontWeight: 600, color: '#444' }}>Job history (≥ 85%):</span>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+          <input type="radio" name="historyOptIn" checked={historyOptIn} onChange={() => handleHistoryChange(true)} />
+          Save history
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+          <input type="radio" name="historyOptIn" checked={!historyOptIn} onChange={() => handleHistoryChange(false)} />
+          Don't save
+        </label>
+      </div>
 
       {/* Action bar */}
       <div style={s.actionBar}>

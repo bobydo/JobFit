@@ -4,7 +4,7 @@ import { getAuthToken, removeAuthToken } from '@gmail/gmail-auth';
 import { getConfig, saveConfig } from '@storage/config-store';
 import { recheckSites } from '@utils/SettingsPanel/siteSignIn';
 import { checkApiReady } from '@utils/SettingsPanel/APICall';
-import { WORKER_URL, AUTH_REQUIRED_DOMAINS } from '../../config';
+import { AUTH_REQUIRED_DOMAINS } from '../../config';
 
 type SetupState =
   | { status: 'checking' }
@@ -31,21 +31,6 @@ export function useAppSetup(isStandalone: boolean) {
     if (!isStandalone) _checkLabels();
   }, []);
 
-  // Auto-submit email once labels are confirmed ready
-  useEffect(() => {
-    if (setup.status !== 'ready' || isStandalone) return;
-    getConfig().then(async (cfg) => {
-      if (cfg.emailSignupShown) return;
-      const email = await getGmailProfile().catch(() => '');
-      if (!email) return;
-      fetch(`${WORKER_URL}/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      }).catch(() => {});
-      saveConfig({ emailSignupShown: true, emailSignupAddress: email });
-    });
-  }, [setup.status]);
 
   async function checkLabels() {
     setSetup({ status: 'checking' });

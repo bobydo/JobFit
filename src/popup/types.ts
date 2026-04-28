@@ -24,16 +24,22 @@ export interface AnalysisWeights {
   domain: number;
 }
 
+export interface SkillGapDetail {
+  skill: string;
+  priority: 'required' | 'preferred';
+}
+
 export interface AnalysisResult {
   jobEmailId: string;
   jobSubject: string;
   resumeId: string;
   resumeSubject: string;
   jobUrl: string;
-  matchScore: number;        // 0–100
+  matchScore: number;              // 0–100
   matchSummary: string;
-  matchedSkills?: string[];  // both modes
-  skillsGaps: string[];      // [] for BYOK; populated for Pro
-  weights?: AnalysisWeights; // Pro mode only
+  matchedSkills?: string[];        // both modes
+  skillsGaps: string[];            // [] for BYOK; populated for Pro
+  skillGapDetails?: SkillGapDetail[]; // Pro only: gaps with required/preferred labels
+  weights?: AnalysisWeights;       // Pro mode only
   analyzedAt: Date;
 }

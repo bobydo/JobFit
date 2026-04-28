@@ -177,12 +177,32 @@ export default function ResultsTab({ results, loginWalls, isAnalyzing, progress,
                       </div>
                     )}
 
-                    {/* Pro: skill gaps */}
+                    {/* Pro: skill gaps with required/preferred priority */}
                     {isPro && r.skillsGaps.length > 0 && (
                       <div style={{ marginTop: 8 }}>
                         <div style={{ ...s.gapsLabel, color: '#c62828' }}>✗ Skill gaps</div>
                         <ul style={s.gapsList}>
-                          {r.skillsGaps.map((g, i) => <li key={i} style={s.gapsItem}>{g}</li>)}
+                          {r.skillGapDetails && r.skillGapDetails.length > 0
+                            ? [...r.skillGapDetails]
+                                .sort((a, b) => (a.priority === 'required' ? -1 : 1) - (b.priority === 'required' ? -1 : 1))
+                                .map((g, i) => (
+                                  <li key={i} style={s.gapsItem}>
+                                    {g.skill}
+                                    <span style={{
+                                      marginLeft: 6,
+                                      fontSize: 10,
+                                      padding: '1px 5px',
+                                      borderRadius: 8,
+                                      fontWeight: 600,
+                                      color:      g.priority === 'required' ? '#c62828' : '#888',
+                                      background: g.priority === 'required' ? '#ffebee' : '#f5f5f5',
+                                    }}>
+                                      {g.priority}
+                                    </span>
+                                  </li>
+                                ))
+                            : r.skillsGaps.map((g, i) => <li key={i} style={s.gapsItem}>{g}</li>)
+                          }
                         </ul>
                       </div>
                     )}

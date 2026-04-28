@@ -30,12 +30,13 @@
 
   <h2>3. Data storage</h2>
   <ul>
-    <li>Analysis results are stored locally in your browser via <code>chrome.storage</code>. They are never uploaded to any server.</li>
+    <li>Analysis results are stored locally in your browser via <code>chrome.storage</code>.</li>
     <li>Optional prompt logs are saved to your local Downloads folder for your own inspection.</li>
   </ul>
 
-  <h2>4. Early access email collection</h2>
-  <p>When you first sign in, JobFit automatically collects your Gmail address and stores it securely on Cloudflare's infrastructure. This is used solely to contact you about JobFit product updates and early access features. Your email address is never shared with third parties or used for advertising. You may request deletion at any time by contacting us via <a href="https://github.com/bobydo/JobFit/issues" target="_blank">GitHub Issues</a>.</p>
+  <h2>4. Job history storage (opt-in)</h2>
+  <p>If you choose to opt in, JobFit stores job match records for jobs scoring ≥ 85% on Cloudflare's infrastructure, linked to your Gmail address. Each record contains: job title, job URL, match score, and skill gaps. No resume text or email body content is ever stored server-side. This data is used to power future learning resource recommendations for your skill gaps.</p>
+  <p>You can enable or disable this at any time in Settings → Job History. You may request deletion of your records by contacting us via <a href="https://github.com/bobydo/JobFit/issues" target="_blank">GitHub Issues</a>.</p>
 
   <h2>5. Data sharing</h2>
   <p>The extension does <strong>not</strong> share your data with the developer or any third party, except for the LLM API you configure. Please review the privacy policy of your chosen LLM provider:</p>
@@ -48,7 +49,7 @@
   <h2>6. Data the extension never collects</h2>
   <ul>
     <li>No analytics, telemetry, or usage tracking of any kind.</li>
-    <li>No personal information is sent to the developer's servers.</li>
+    <li>No resume text or email body content is ever sent to the developer's servers.</li>
     <li>No data is sold or used for advertising.</li>
   </ul>
 

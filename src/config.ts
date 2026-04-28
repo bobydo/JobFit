@@ -61,7 +61,8 @@ export const ANALYSIS_POPUP_MARGIN = 16; // gap from screen edge (px)
 // ⚠ Keep in sync with DAILY_LIMIT in worker/wrangler.toml
 export const DAILY_ANALYSIS_LIMIT    = DEFAULT_MAX_RESUMES * DEFAULT_MAX_JOB_POSTS; // 2 × 60 = 120
 export const DAILY_WARN_THRESHOLD    = Math.floor(DAILY_ANALYSIS_LIMIT * 0.9);      // 108 — show yellow warning
-export const LEAD_CAPTURE_MIN_SCORE  = 85; // save to KV when score ≥ this
+export const LEAD_CAPTURE_MIN_SCORE  = 85; // save job history when score ≥ this
+export const WORKER_HISTORY_ENDPOINT = `${WORKER_URL}/history`;
 
 // ── Prompt text limits ────────────────────────────────────────────────────
 export const RESUME_TEXT_MAX_CHARS = 6000;

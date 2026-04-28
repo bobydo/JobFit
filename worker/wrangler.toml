@@ -20,6 +20,11 @@ id = "0d55b4cbce5e45c094d4208184ba6e73"
 [vars]
 DAILY_LIMIT = 120
 
+[[d1_databases]]
+binding       = "DB"
+database_name = "jobfit-history"
+database_id   = "c2ad2ad0-0357-47ca-bec5-1af2b1333659"
+
 # Secrets — set via: npx wrangler secret put <NAME>
 # STRIPE_WEBHOOK_SECRET   — from Stripe dashboard → Webhooks → Signing secret
 # OPENAI_API_KEY          — your GPT-4o mini key

@@ -2,7 +2,8 @@ import { fetchJobPage, fetchJobPageViaTab } from '@utils/job_email/job-page-fetc
 import { traceLlmCall } from '@utils/langfuse-tracer';
 import {
   LANGFUSE_ENABLED, LANGFUSE_BASE_URL, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY,
-  DAILY_ANALYSIS_LIMIT, DAILY_WARN_THRESHOLD, LEAD_CAPTURE_MIN_SCORE, WORKER_URL,
+  DAILY_ANALYSIS_LIMIT, DAILY_WARN_THRESHOLD, LEAD_CAPTURE_MIN_SCORE,
+  WORKER_HISTORY_ENDPOINT,
   GROQ_DEFAULT_MODEL, OPENAI_DEFAULT_MODEL, ANTHROPIC_DEFAULT_MODEL,
   OLLAMA_MODEL,
   AUTH_REQUIRED_DOMAINS,
@@ -10,7 +11,7 @@ import {
 import { LLMProviderFactory } from '../llm/llm-provider-factory';
 import { cacheStore, CacheStore } from '../storage/cache-store';
 import { gmailClient } from '../gmail/gmail-client';
-import type { Resume, JobEmail, AnalysisResult, AnalysisWeights } from '../popup/types';
+import type { Resume, JobEmail, AnalysisResult } from '../popup/types';
 import type { AppConfig } from '../storage/config-store';
 import { PromptBuilder } from './prompt-builder';
 import { AnalysisResponseParser } from './analysis-response-parser';
@@ -49,49 +50,66 @@ export class MatchAnalyzer {
       await this._cache.incrementDailyCount();
     }
 
+    const isPro = config.mode === 'jobfit-cloud';
+    const userContent = isPro
+      ? this._promptBuilder.buildPro(resume, job)
+      : this._promptBuilder.build(resume, job);
+    messages[1] = { role: 'user', content: userContent };
+
     const provider = this._factory.create(config);
     const result   = await provider.chat(messages);
-    const { matchScore, matchSummary, matchedSkills, skillsGaps, weights } = this._parser.parse(result.content);
+    const { matchScore, matchSummary, matchedSkills, skillsGaps, skillGapDetails, weights } = this._parser.parse(result.content);
 
     await this._sendTrace(config, messages, result, job, resume);
 
-    // Lead capture — fire and forget, never blocks the result
+    // Save to D1 history — fire and forget, never blocks the result
     if (matchScore >= LEAD_CAPTURE_MIN_SCORE) {
-      this._captureLead(config, job.subject, skillsGaps, weights, matchScore).catch(() => {});
+      const gapsForHistory = skillGapDetails.length > 0
+        ? skillGapDetails
+        : skillsGaps.map(s => ({ skill: s, priority: 'required' as const }));
+      this._saveHistory(config, job, matchScore, gapsForHistory).catch(() => {});
     }
 
-    const isPro = config.mode === 'jobfit-cloud';
     return {
-      jobEmailId:    job.id,
-      jobSubject:    job.subject,
-      jobUrl:        job.urls[0] ?? '',
-      resumeId:      resume.id,
-      resumeSubject: resume.subject,
+      jobEmailId:      job.id,
+      jobSubject:      job.subject,
+      jobUrl:          job.urls[0] ?? '',
+      resumeId:        resume.id,
+      resumeSubject:   resume.subject,
       matchScore,
       matchSummary,
       matchedSkills,
-      skillsGaps:    isPro ? skillsGaps : [],
-      weights:       isPro ? weights : undefined,
+      skillsGaps:      isPro ? skillsGaps : [],
+      skillGapDetails: isPro ? skillGapDetails : undefined,
+      weights:         isPro ? weights : undefined,
       analyzedAt: new Date(),
     };
   }
 
-  private async _captureLead(
+  private async _saveHistory(
     config: AppConfig,
-    jobTitle: string,
-    skillsGaps: string[],
-    weights: AnalysisWeights,
+    job: JobEmail,
     score: number,
+    skillGapDetails: import('../popup/types').SkillGapDetail[],
   ): Promise<void> {
-    const isPro  = config.mode === 'jobfit-cloud';
-    const email  = isPro ? undefined : await gmailClient.getProfile().catch(() => '');
-    const token  = isPro ? config.subscriptionToken : undefined;
+    if (!config.historyOptIn) return;
+    const isPro = config.mode === 'jobfit-cloud';
+    const email = isPro ? undefined : await gmailClient.getProfile().catch(() => '');
+    const token = isPro ? config.subscriptionToken : undefined;
     if (!email && !token) return;
 
-    await fetch(`${WORKER_URL}/lead`, {
+    await fetch(WORKER_HISTORY_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, token, jobTitle, skillsGaps, weights, score }),
+      body: JSON.stringify({
+        email,
+        token,
+        job_id:    job.id,
+        job_title: job.subject,
+        job_url:   job.urls[0] ?? '',
+        score,
+        skills_gap: skillGapDetails,
+      }),
     });
   }
 

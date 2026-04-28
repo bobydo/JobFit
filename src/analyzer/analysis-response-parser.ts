@@ -1,10 +1,11 @@
-import type { AnalysisWeights } from '../popup/types';
+import type { AnalysisWeights, SkillGapDetail } from '../popup/types';
 
 export interface LLMResponse {
   matchScore: number;
   matchSummary: string;
   matchedSkills: string[];
   skillsGaps: string[];
+  skillGapDetails: SkillGapDetail[];
   weights: AnalysisWeights;
 }
 
@@ -36,6 +37,16 @@ export class AnalysisResponseParser {
       ? (obj.skillsGaps as unknown[]).filter((x): x is string => typeof x === 'string')
       : [];
 
+    const skillGapDetails: SkillGapDetail[] = Array.isArray(obj.skillsGapsDetailed)
+      ? (obj.skillsGapsDetailed as unknown[]).filter(
+          (x): x is SkillGapDetail =>
+            typeof x === 'object' && x !== null && typeof (x as Record<string,unknown>).skill === 'string'
+        ).map((x) => ({
+          skill:    (x as Record<string,unknown>).skill as string,
+          priority: (x as Record<string,unknown>).priority === 'preferred' ? 'preferred' : 'required',
+        }))
+      : [];
+
     const w = obj.weights as Record<string, unknown> | undefined;
     const weights: AnalysisWeights = {
       skills:     typeof w?.skills     === 'number' ? Math.round(w.skills)     : 25,
@@ -44,6 +55,6 @@ export class AnalysisResponseParser {
       domain:     typeof w?.domain     === 'number' ? Math.round(w.domain)     : 25,
     };
 
-    return { matchScore, matchSummary, matchedSkills, skillsGaps, weights };
+    return { matchScore, matchSummary, matchedSkills, skillsGaps, skillGapDetails, weights };
   }
 }
