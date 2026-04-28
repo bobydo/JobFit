@@ -20,6 +20,13 @@ chrome.runtime.onMessageExternal.addListener((msg, _sender, sendResponse) => {
     chrome.storage.sync.remove(msg.keys, () => sendResponse({ ok: true }));
     return true;
   }
+  if (msg.type === 'OPEN_POPUP') {
+    chrome.windows.create({
+      url: chrome.runtime.getURL('src/popup/popup.html'),
+      type: 'popup', width: 420, height: 680,
+    }, () => sendResponse({ ok: true }));
+    return true;
+  }
 });
 
 chrome.runtime.onMessage.addListener(

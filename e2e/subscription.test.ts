@@ -71,6 +71,7 @@ test('Manage subscription button is visible when pro active', async () => {
   );
   await popup.getByText('Settings').click();
   await expect(popup.getByRole('button', { name: /Manage subscription/ })).toBeVisible();
+  await expect(popup.getByRole('button', { name: /Subscribed/ })).toBeDisabled();
   await popup.close();
 });
 
@@ -98,9 +99,10 @@ test('Pro inactive after token removed — open, close, reopen', async () => {
   // Reopen — should show inactive
   const popup2 = await openPopup(context);
   await popup2.getByText('Settings').click();
-  await popup2.getByText('JobFit Pro').click();
+  await popup2.locator('label', { hasText: 'JobFit Pro' }).click();
   await expect(popup2.getByText('pro active')).not.toBeVisible();
   await expect(popup2.getByRole('button', { name: /Subscribe →/ })).toBeVisible();
+  await expect(popup2.getByRole('button', { name: /Subscribe →/ })).toBeEnabled();
   await popup2.close();
 
   await context.unroute('**/validate-token');

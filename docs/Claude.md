@@ -52,3 +52,14 @@ For multi-step tasks, state a brief plan:
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
 These guidelines are working if: fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+5. Solution Direction Changes
+Never silently switch the agreed approach. Ask the developer first.
+
+If the chosen solution hits a blocker and a different approach is needed:
+
+**⚠ WARNING: The original approach (X) is blocked because Y. I'm considering switching to Z instead. Should I proceed, or would you prefer to try a different fix for X first?**
+
+This applies to: changing libraries, switching tools (e.g. real Chrome → Chromium), abandoning an agreed architecture, or any pivot that contradicts a decision the developer already made.
+
+Do not switch silently and explain afterwards. The developer must approve direction changes before implementation.

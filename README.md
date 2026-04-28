@@ -142,4 +142,9 @@ The Planning pattern (chaining multiple LLM calls where each step feeds the next
 ![1777316850034](image/README/1777316850034.png)
 
 
+## Claude mistake
+![1777397746409](image/README/1777397746409.png)
+![1777398003192](image/README/1777398003192.png)
+
+
 
