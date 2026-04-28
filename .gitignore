@@ -141,6 +141,7 @@ vite.config.ts.timestamp-*
 # Chrome debug profile
 .chrome-debug/
 .vscode/chrome/
+e2e/.chrome-profile/
 
 # Secrets
 keys/

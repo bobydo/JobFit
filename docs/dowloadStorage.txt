@@ -1,0 +1,35 @@
+C:\Users\baosh\AppData\Local\Google\Chrome\User Data\Profile 2\Local Extension Settings\djfaajdpdibhglnkjjpahfagkjmllopl
+
+{
+  "manifest_version": 3,
+  "name": "JobFit",
+  "version": "0.1.0",
+
+  "permissions": [
+    "storage",
+    "downloads"
+  ]
+}
+
+(async () => {
+  const data = {
+    local: await chrome.storage.local.get(null),
+    sync: await chrome.storage.sync.get(null),
+    session: await chrome.storage.session.get(null),
+    managed: await chrome.storage.managed.get(null),
+    exportedAt: new Date().toISOString()
+  };
+
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: "application/json" });
+
+  const url = URL.createObjectURL(blob);
+
+  chrome.downloads.download({
+    url: url,
+    filename: "StorageExport.json",
+    saveAs: true
+  }, () => {
+    URL.revokeObjectURL(url);
+  });
+})();

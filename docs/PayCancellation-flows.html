@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>JobFit Pro — Subscription Flows</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #fff;
+      color: #222;
+      padding: 32px 40px;
+    }
+
+    h1 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      color: #111;
+      border-bottom: 2px solid #e5e5e5;
+      padding-bottom: 10px;
+    }
+
+    .columns {
+      display: flex;
+      gap: 40px;
+      align-items: flex-start;
+    }
+
+    .column {
+      flex: 1;
+    }
+
+    h2 {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #555;
+      margin-bottom: 12px;
+    }
+
+    pre {
+      font-family: 'Courier New', 'Consolas', monospace;
+      font-size: 12px;
+      line-height: 1.55;
+      white-space: pre;
+      background: #f8f8f8;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 16px 18px;
+      color: #222;
+    }
+
+    @media print {
+      @page { size: landscape; margin: 16mm; }
+      body { padding: 0; }
+      .columns { gap: 28px; }
+      pre { font-size: 11px; background: #fafafa; }
+    }
+  </style>
+</head>
+<body>
+  <h1>JobFit Pro — Subscription Flows</h1>
+  <div class="columns">
+
+    <div class="column">
+      <h2>Subscribe Flow</h2>
+      <pre>
+┌──────────────────────┐
+│ 🧩 Extension Code    │
+│ User clicks Subscribe│
+└──────────┬───────────┘
+           ↓
+┌──────────────────────┐
+│ 💳 Stripe            │
+│ Checkout page (tab)  │
+│ Payment success      │
+└──────────┬───────────┘
+           ↓ (webhook)
+┌──────────────────────┐
+│ ☁️  Cloudflare Worker │
+│ checkout.session     │
+│   .completed         │
+│ → generate UUID token│
+│ → KV: token:{uuid}   │
+│ → KV: email:{email}  │
+└──────────┬───────────┘
+           ↓
+┌──────────────────────┐
+│ 🧩 Extension Code    │
+│ User opens Settings  │
+│ → POST               │
+│   /check-subscription│
+└──────────┬───────────┘
+           ↓
+┌──────────────────────┐
+│ ☁️  Cloudflare Worker │
+│ Find token by email  │
+│ → return token       │
+└──────────┬───────────┘
+           ↓
+┌──────────────────────┐
+│ 🧠 Chrome Storage    │
+│ Save token + plan    │
+└──────────┬───────────┘
+           ↓
+┌──────────────────────┐
+│ 🧩 Extension Code    │
+│ Show: ✅ Pro Active   │
+└──────────────────────┘
+      </pre>
+    </div>
+
+    <div class="column">
+      <h2>Cancel Flow</h2>
+      <pre>
+┌──────────────────────┐
+│ 🧩 Extension Code    │
+│ User clicks          │
+│ "Manage Subscription"│
+└──────────┬───────────┘
+           ↓
+┌──────────────────────┐
+│ ☁️  Cloudflare Worker │
+│ /create-portal-      │
+│   session            │
+│ → return portal URL  │
+└──────────┬───────────┘
+           ↓
+┌──────────────────────┐
+│ 💳 Stripe            │
+│ Customer Portal      │
+│ User clicks Cancel   │
+│ (cancel_at_period    │
+│   _end)              │
+└──────────┬───────────┘
+           ↓
+        ⏳ NO ACTION YET
+        (User still Pro)
+           ↓
+     End of billing period
+           ↓ (webhook)
+┌──────────────────────┐
+│ ☁️  Cloudflare Worker │
+│ customer.subscription│
+│   .deleted           │
+│ → delete token KV    │
+│ → delete email KV    │
+└──────────┬───────────┘
+           ↓
+┌──────────────────────┐
+│ 🧩 Extension Code    │
+│ User opens Settings  │
+│ → POST /validate-    │
+│   token              │
+└──────────┬───────────┘
+           ↓
+┌──────────────────────┐
+│ ☁️  Cloudflare Worker │
+│ Token not found      │
+│ → return 401         │
+└──────────┬───────────┘
+           ↓
+┌──────────────────────┐
+│ 🧠 Chrome Storage    │
+│ Remove token         │
+└──────────┬───────────┘
+           ↓
+┌──────────────────────┐
+│ 🧩 Extension Code    │
+│ Auto-heal attempt    │
+│ → /check-subscription│
+│ → 404                │
+│ ❌ Pro Inactive       │
+└──────────────────────┘
+      </pre>
+    </div>
+
+  </div>
+</body>
+</html>

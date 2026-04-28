@@ -7,6 +7,21 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 // Keep the service worker alive only long enough to handle token requests.
+chrome.runtime.onMessageExternal.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === 'GET_STORAGE') {
+    chrome.storage.sync.get(msg.keys, sendResponse);
+    return true;
+  }
+  if (msg.type === 'SET_STORAGE') {
+    chrome.storage.sync.set(msg.payload, () => sendResponse({ ok: true }));
+    return true;
+  }
+  if (msg.type === 'REMOVE_STORAGE') {
+    chrome.storage.sync.remove(msg.keys, () => sendResponse({ ok: true }));
+    return true;
+  }
+});
+
 chrome.runtime.onMessage.addListener(
   (message, _sender, sendResponse) => {
     if (message.type === 'GET_AUTH_TOKEN') {
