@@ -70,13 +70,32 @@ export default function SettingsPanel({ onClose, focusPro = false }: { onClose: 
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: cfg.subscriptionToken }),
-        }).then((res) => {
+        }).then(async (res) => {
           if (res.ok) {
             setTokenStatus('ok');
+          } else if (res.status === 401 || res.status === 404) {
+            // Token invalid — wipe it then try email-based re-detection before giving up
+            await saveConfig({ subscriptionToken: undefined, subscriptionPlan: undefined });
+            const email = await gmailClient.getProfile().catch(() => '');
+            if (!email) { setTokenStatus('cancelled'); setActivePlan(undefined); return; }
+            const recheck = await fetch(`${WORKER_URL}/check-subscription`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email }),
+            }).catch(() => null);
+            if (recheck?.ok) {
+              const { token, plan } = await recheck.json() as { token: string; plan: 'pro' };
+              await saveConfig({ mode: 'jobfit-cloud', subscriptionToken: token, subscriptionPlan: plan });
+              setConfig((prev) => prev ? { ...prev, subscriptionToken: token, subscriptionPlan: plan } : prev);
+              setActivePlan(plan);
+              setTokenStatus('ok');
+            } else {
+              setTokenStatus('cancelled');
+              setActivePlan(undefined);
+            }
           } else {
-            setTokenStatus('cancelled');
-            setActivePlan(undefined);
-            saveConfig({ subscriptionToken: undefined, subscriptionPlan: undefined });
+            // 500 or other server error — keep token, avoid false cancellation
+            setTokenStatus('ok');
           }
         }).catch(() => setTokenStatus('ok')); // keep ok on network error
       }
