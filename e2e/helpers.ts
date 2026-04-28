@@ -1,5 +1,12 @@
 import { chromium, BrowserContext, Page } from '@playwright/test';
 import path from 'path';
+import fs from 'fs';
+
+export function readEnv(key: string): string {
+  const raw = fs.readFileSync(path.resolve(process.cwd(), '.env'), 'utf8');
+  const match = raw.match(new RegExp(`^${key}=(.+)$`, 'm'));
+  return match?.[1]?.trim() ?? '';
+}
 
 declare const chrome: any;
 
