@@ -147,4 +147,24 @@ The Planning pattern (chaining multiple LLM calls where each step feeds the next
 ![1777398003192](image/README/1777398003192.png)
 
 
+## Test summary
+JobFit — What to Test
+Setup
+Install the extension from the Chrome Web Store
+Click the JobFit icon → Settings → sign in to Gmail and job sites (LinkedIn, Indeed, Glassdoor)
+Choose your LLM mode — either JobFit Pro (subscribe) or paste your own API key (Groq is free)
+Core feature
+4. In Gmail, label some job alert emails as jobposts
+5. Save your resume file in Google Drive
+6. Open a job posting page → click the JobFit icon → click Analyze
+7. You get a match score + skills gap breakdown instantly
+
+JobFit Pro subscription
+8. Go to Settings → JobFit Pro → Subscribe → pay with test card 4242 4242 4242 4242, any future date, any CVC
+9. After payment, Settings shows "Subscribed ✓" and "pro active"
+10. Click "Manage subscription" → opens Stripe portal → can cancel or renew
+11. After cancelling, Settings shows "Cancels on <date>" instead of "pro active"
+12. After cancellation date passes, Settings shows "Pro inactive"
+
+
 

@@ -15,13 +15,14 @@
 </head>
 <body>
   <h1>JobFit Privacy Policy</h1>
-  <p class="date">Effective date: April 8, 2026</p>
+  <p class="date">Effective date: April 28, 2026</p>
 
-  <p>JobFit ("the extension") is a Chrome extension that matches your resume against job postings found in your Gmail inbox. This policy explains what data the extension accesses, how it is used, and what is never collected.</p>
+  <p>JobFit ("the extension") is a Chrome extension that matches your resume against job postings found in your Gmail inbox. Your resume is read from a file you select in Google Drive. This policy explains what data the extension accesses, how it is used, and what is never collected.</p>
 
   <h2>1. Data the extension accesses</h2>
   <ul>
-    <li><strong>Gmail emails</strong> — The extension reads emails you have labeled <code>resumes</code> and <code>jobposts</code> in your Gmail account. Only those labeled emails are read; no other email is accessed.</li>
+    <li><strong>Google Drive file</strong> — The extension reads a resume file you select from your Google Drive. Only the file you explicitly choose is accessed; no other Drive content is read.</li>
+    <li><strong>Gmail emails</strong> — The extension reads emails you have labeled <code>jobposts</code> in your Gmail account. Only those labeled emails are read; no other email is accessed.</li>
     <li><strong>Job posting pages</strong> — When a job email contains a URL, the extension may fetch the linked page to extract the full job description for analysis.</li>
   </ul>
 
@@ -34,16 +35,16 @@
     <li>Optional prompt logs are saved to your local Downloads folder for your own inspection.</li>
   </ul>
 
-  <h2>4. Job history storage (opt-in)</h2>
-  <p>If you choose to opt in, JobFit stores job match records for jobs scoring ≥ 85% on Cloudflare's infrastructure, linked to your Gmail address. Each record contains: job title, job URL, match score, and skill gaps. No resume text or email body content is ever stored server-side. This data is used to power future learning resource recommendations for your skill gaps.</p>
-  <p>You can enable or disable this at any time in Settings → Job History. You may request deletion of your records by contacting us via <a href="https://github.com/bobydo/JobFit/issues" target="_blank">GitHub Issues</a>.</p>
+  <h2>4. Subscription and payment</h2>
+  <p>If you subscribe to JobFit Pro, your email address is stored on Cloudflare's infrastructure solely to identify your active subscription. Payment is processed securely by <a href="https://stripe.com/privacy" target="_blank">Stripe</a> — the extension never handles or stores your credit card details. You can cancel your subscription at any time from Settings.</p>
 
   <h2>5. Data sharing</h2>
-  <p>The extension does <strong>not</strong> share your data with the developer or any third party, except for the LLM API you configure. Please review the privacy policy of your chosen LLM provider:</p>
+  <p>The extension does <strong>not</strong> share your data with the developer or any third party, except for the LLM API you configure and Stripe for payment processing. Please review the privacy policy of your chosen provider:</p>
   <ul>
     <li><a href="https://groq.com/privacy-policy/" target="_blank">Groq Privacy Policy</a></li>
     <li><a href="https://openai.com/policies/privacy-policy" target="_blank">OpenAI Privacy Policy</a></li>
     <li><a href="https://www.anthropic.com/privacy" target="_blank">Anthropic Privacy Policy</a></li>
+    <li><a href="https://stripe.com/privacy" target="_blank">Stripe Privacy Policy</a> (JobFit Pro subscribers only)</li>
   </ul>
 
   <h2>6. Data the extension never collects</h2>
@@ -55,7 +56,8 @@
 
   <h2>7. Permissions explained</h2>
   <ul>
-    <li><strong>identity / gmail.readonly</strong> — Required to authenticate with Gmail and read your labeled emails.</li>
+    <li><strong>identity / drive.readonly</strong> — Required to authenticate with Google and read the resume file you select from Google Drive.</li>
+    <li><strong>identity / gmail.readonly</strong> — Required to read your labeled job alert emails in Gmail.</li>
     <li><strong>storage</strong> — Stores your settings and analysis results locally in the browser.</li>
     <li><strong>downloads</strong> — Saves optional prompt logs to your Downloads folder.</li>
     <li><strong>tabs / scripting / host permissions</strong> — Used to open and extract text from job posting pages linked in your emails, which may be hosted on any domain.</li>
